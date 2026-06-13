@@ -5,7 +5,19 @@
 members = ["apps/pipelines", "packages/py-common"]
 
 [dependency-groups]
-dev = ["ruff>=0.6.0", "mypy>=1.11.0", "pytest>=8.0.0"]
+dev = [
+    "ruff>=0.6.0",
+    "mypy>=1.11.0",
+    "pytest>=8.0.0",
+    "testcontainers[kafka,postgres]>=4.8.0",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["apps/pipelines/tests", "packages/py-common/tests"]
+addopts = "-m 'not integration'"
+markers = [
+    "integration: Docker(Testcontainers)가 필요한 통합 테스트",
+]
 
 [tool.ruff]
 line-length = 100
