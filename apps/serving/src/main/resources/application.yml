@@ -1,0 +1,6 @@
+spring:
+  application:
+    name: personalized-reco-serving
+
+server:
+  port: 8080

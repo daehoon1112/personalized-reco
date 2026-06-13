@@ -1,0 +1,16 @@
+# Python(uv) 측 워크스페이스 루트 (가상 루트 — 자체는 패키지가 아님).
+# 멤버 패키지는 apps/pipelines, packages/py-common. JVM 측은 Gradle로 별도 관리.
+
+[tool.uv.workspace]
+members = ["apps/pipelines", "packages/py-common"]
+
+[dependency-groups]
+dev = ["ruff>=0.6.0", "mypy>=1.11.0", "pytest>=8.0.0"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
