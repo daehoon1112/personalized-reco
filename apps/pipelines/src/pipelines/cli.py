@@ -1,6 +1,6 @@
-"""예시 파이프라인 CLI (스캐폴딩).
+"""파이프라인 CLI (스캐폴딩 + 컨슈머 진입점).
 
-실제 로직(silver 라벨링 #14, gold 인기순 #10, 평가 #11 등)은 후속 이슈에서 구현한다.
+실제 로직(silver 라벨링 #14, gold 인기순 #10, 평가 #11)은 후속 이슈에서 구현한다.
 """
 
 from __future__ import annotations
@@ -27,11 +27,17 @@ def main() -> None:
     sub = parser.add_subparsers(dest="command")
     sub.add_parser("hello", help="환경/워크스페이스 점검")
     sub.add_parser("example-popularity", help="예시 인기순 추천 출력")
+    consume_p = sub.add_parser("consume", help="Kafka → Bronze 적재 (#13)")
+    consume_p.add_argument("--idle-timeout", type=float, default=0.0)
     args = parser.parse_args()
 
     if args.command == "example-popularity":
         for row in example_popularity():
             print(f"{row['item_id']}\t{row['score']}")
+    elif args.command == "consume":
+        from pipelines.consumer import run_consumer
+
+        run_consumer(idle_timeout=args.idle_timeout)
     else:
         print(banner())
 

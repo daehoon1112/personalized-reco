@@ -1,6 +1,16 @@
 spring:
   application:
     name: personalized-reco-serving
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP:localhost:9092}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+      acks: all
 
 server:
   port: 8080
+
+app:
+  kafka:
+    events-topic: events

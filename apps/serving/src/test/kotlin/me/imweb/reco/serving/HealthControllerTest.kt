@@ -1,20 +1,12 @@
 package me.imweb.reco.serving
 
+import io.kotest.core.spec.style.StringSpec
+import io.kotest.matchers.shouldBe
 import me.imweb.reco.serving.api.HealthController
-import org.junit.jupiter.api.Test
-import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest
-import org.springframework.test.web.servlet.MockMvc
-import org.springframework.test.web.servlet.get
 
-@WebMvcTest(HealthController::class)
-class HealthControllerTest(@Autowired val mockMvc: MockMvc) {
-
-    @Test
-    fun `GET health returns UP`() {
-        mockMvc.get("/health").andExpect {
-            status { isOk() }
-            jsonPath("$.status") { value("UP") }
-        }
+/** 단위 테스트 — 순수 로직, I/O 없음. */
+class HealthControllerTest : StringSpec({
+    "health 는 UP 을 반환한다" {
+        HealthController().health() shouldBe mapOf("status" to "UP")
     }
-}
+})

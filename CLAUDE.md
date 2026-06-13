@@ -46,8 +46,9 @@
 ## 모노레포 구조
 
 ```
-apps/serving        # Kotlin · Spring Boot — 수집 API(producer) + 컨슈머(bronze 적재) + 추천 서빙 (+ Flyway)
-apps/pipelines      # Python — silver 라벨링 · gold/인기순 랭킹 · 오프라인 평가 · 합성 이벤트 생성
+apps/serving        # Kotlin · Spring Boot — 수집 API(producer) + 추천 서빙 (+ Flyway)
+apps/pipelines      # Python — Kafka 컨슈머(bronze 적재) · silver 라벨링 · gold/인기순 · 평가 · 합성 이벤트
+docs/testing.md     # 모듈별 테스트 정책 (Kotest/MockK/Testcontainers, Python 4종)
 packages/schema-py  # protobuf → Python 코드젠
 packages/py-common  # Python 공유 (DB·설정·지표)
 contracts/proto     # ★ 이벤트/아이템/유저 스키마 단일 소스 + buf.yaml
@@ -134,7 +135,9 @@ data                # 로컬 산출물 (gitignore)
 - **Proto**: `buf lint` 통과. 필드 번호는 절대 재사용 금지(하위호환). 변경은 add-only 우선.
 - **공통**: Conventional Commits(`feat:`, `fix:`, `chore:` …), 짧은 feature 브랜치 → PR.
   통합 명령은 루트 **Makefile** 사용.
-- **테스트**: Kotlin = JUnit5, Python = pytest. 파이프라인은 합성 데이터로 엔드투엔드 스모크.
+- **테스트**: 모듈별 정책은 [docs/testing.md](./docs/testing.md). Kotlin = **Kotest**(+MockK, Testcontainers),
+  Python = **pytest**(①결정적 ②계약 ③메트릭 ④행동·회귀 + Testcontainers 통합).
+  빠른 건 `make test`, Docker 통합은 `make test-integration`.
 
 ## 결정 필요 (OPEN)
 

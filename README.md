@@ -55,10 +55,10 @@ flowchart LR
     subgraph kt["Kotlin · Spring Boot"]
         ING["수집 API<br/>produce → 202"]
         SRV["서빙 API<br/>+ 콜드스타트 폴백"]
-        CONS["이벤트 컨슈머<br/>→ bronze 적재"]
     end
 
-    subgraph py["Python · uv (배치)"]
+    subgraph py["Python · uv"]
+        CONS["이벤트 컨슈머<br/>→ bronze 적재"]
         LBL["Silver 라벨링"]
         BATCH["Gold · 인기순 랭킹"]
         EVAL["오프라인 평가"]
@@ -150,8 +150,8 @@ sequenceDiagram
 ```text
 personalized-reco/
 ├─ apps/
-│  ├─ serving/          # Kotlin · Spring Boot — 수집 API(producer) + 컨슈머(bronze 적재) + 추천 서빙 (+ Flyway)
-│  └─ pipelines/        # Python — silver 라벨링 · gold/인기순 랭킹 · 오프라인 평가 · 합성 이벤트 생성
+│  ├─ serving/          # Kotlin · Spring Boot — 수집 API(producer) + 추천 서빙 (+ Flyway)
+│  └─ pipelines/        # Python — Kafka 컨슈머(bronze 적재) · silver 라벨링 · gold/인기순 · 평가 · 합성 이벤트
 ├─ packages/
 │  ├─ schema-py/        # protobuf → Python 타입 코드젠 산출물
 │  └─ py-common/        # Python 공유 (DB 액세스 · 설정 · 지표 유틸)

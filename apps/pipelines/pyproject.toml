@@ -1,14 +1,17 @@
 [project]
 name = "pipelines"
 version = "0.0.1"
-description = "personalized-reco ML/데이터 배치 파이프라인"
+description = "personalized-reco ML/데이터 배치 파이프라인 + Kafka 컨슈머"
 requires-python = ">=3.12"
 dependencies = [
     "py-common",
+    "confluent-kafka>=2.5.0",
+    "psycopg[binary]>=3.2.0",
 ]
 
 [project.scripts]
 reco-pipelines = "pipelines.cli:main"
+reco-consumer = "pipelines.consumer:main"
 
 [tool.uv.sources]
 py-common = { workspace = true }
