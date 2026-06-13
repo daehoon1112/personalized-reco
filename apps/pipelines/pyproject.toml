@@ -1,0 +1,21 @@
+[project]
+name = "pipelines"
+version = "0.0.1"
+description = "personalized-reco ML/데이터 배치 파이프라인"
+requires-python = ">=3.12"
+dependencies = [
+    "py-common",
+]
+
+[project.scripts]
+reco-pipelines = "pipelines.cli:main"
+
+[tool.uv.sources]
+py-common = { workspace = true }
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/pipelines"]
