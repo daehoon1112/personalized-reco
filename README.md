@@ -168,6 +168,47 @@ personalized-reco/
 
 > Kotlin용 proto 타입은 Gradle 빌드 단계에서 생성되어 `apps/serving`이 소비한다.
 
+## 테스트
+
+모듈 성격에 맞춰 테스트를 나눈다(테스트 피라미드 — 빠른 것 많이, 느린 것 적게). 전체 정책은
+[docs/testing.md](./docs/testing.md). **빠른 테스트는 Docker 없이**, **통합/E2E는 Testcontainers**로 돈다.
+
+```mermaid
+flowchart TB
+    subgraph FAST["make test — 빠름 · Docker 불필요"]
+        ku1["Kotlin 단위 · Kotest + MockK<br/>컨트롤러 · 순수 로직"]
+        pu1["Python ① 결정적 단위<br/>전처리 · 인기순 집계"]
+        pu2["Python ② 계약<br/>≤K · 중복없음 · seen 제외 · 점수범위"]
+        pu3["Python ③ 메트릭 검증<br/>P@K · NDCG · Recall@K 수기 픽스처"]
+        pu4["Python ④ 행동 · 회귀<br/>방향성 · 콜드스타트 폴백 · NDCG 기준선"]
+    end
+
+    subgraph SLOW["make test-integration — Testcontainers · Docker 필요"]
+        ke["Kotlin E2E<br/>실제 Kafka + @SpringBootTest<br/>POST /events → 토픽 확인"]
+        pe["Python 통합<br/>Kafka + Postgres<br/>produce → consume → Bronze 멱등"]
+    end
+
+    FAST --> SLOW
+```
+
+### 어떻게 짜나
+
+- **서빙 (Kotlin)** — `apps/serving/src/test/...`, **Kotest** 스펙(`StringSpec`).
+  - 단위: 협력자(`KafkaTemplate` 등)는 **MockK**로 모킹, I/O 없이 빠르게.
+  - E2E: `@SpringBootTest` + **Testcontainers**(실제 Kafka). `@Tags("Integration")`으로 표시 → 기본 `test`에서 제외.
+- **모델 / 데이터 (Python)** — `apps/pipelines/tests`, `packages/py-common/tests`, **pytest**.
+  - ① 결정적 단위 ② 계약(형식 불변식) ③ 메트릭 수기 검증 ④ 행동·회귀.
+  - Testcontainers 통합은 `@pytest.mark.integration`으로 표시 → 기본 실행에서 제외.
+- **원칙**: 단위 계층은 고정 시드·고정 픽스처(벽시계·네트워크 금지). 메트릭은 손으로 답을 아는
+  값으로 못 박는다(지표가 틀리면 평가 전체가 거짓말).
+
+### 실행
+
+```bash
+make test              # 단위 · 계약 · 메트릭 · 행동 (빠름, Docker 불필요)
+make test-integration  # E2E · 통합 (Testcontainers, Docker 필요)
+```
+
 ---
 
 ## 데이터 전략 (가장 중요한 기반)
