@@ -1,0 +1,60 @@
+# ───────── macOS ─────────
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# ───────── IDE / 에디터 ─────────
+.idea/
+*.iml
+*.iws
+*.ipr
+.vscode/
+*.swp
+
+# ───────── JVM / Kotlin / Gradle ─────────
+.gradle/
+build/
+!gradle/wrapper/gradle-wrapper.jar
+!**/src/**/build/
+out/
+*.class
+*.log
+.kotlin/
+local.properties
+
+# ───────── Python ─────────
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+env/
+.uv/
+.python-version
+*.egg-info/
+dist/
+build-python/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.ipynb_checkpoints/
+
+# ───────── Node (필요 시) ─────────
+node_modules/
+.pnpm-store/
+
+# ───────── 데이터 / 모델 산출물 ─────────
+data/
+*.parquet
+*.feather
+*.csv.gz
+models/
+artifacts/
+
+# ───────── 환경 / 시크릿 ─────────
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+secrets/
