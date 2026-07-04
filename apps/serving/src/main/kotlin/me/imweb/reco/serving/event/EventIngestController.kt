@@ -1,6 +1,6 @@
 package me.imweb.reco.serving.event
 
-import com.fasterxml.jackson.databind.ObjectMapper
+import tools.jackson.databind.ObjectMapper
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.http.HttpStatus
 import org.springframework.kafka.core.KafkaTemplate
@@ -30,12 +30,13 @@ class EventIngestController(
     @ResponseStatus(HttpStatus.ACCEPTED)
     fun ingest(@RequestBody events: List<EventEnvelope>): IngestResponse {
         events.forEach { raw ->
+            val eventId = raw.eventId ?: UUID.randomUUID().toString()
             val enriched = raw.copy(
-                eventId = raw.eventId ?: UUID.randomUUID().toString(),
+                eventId = eventId,
                 ts = raw.ts ?: Instant.now().toString(),
             )
             // fire-and-forget: send 결과를 블록하지 않는다.
-            kafkaTemplate.send(topic, enriched.userId ?: enriched.eventId, objectMapper.writeValueAsString(enriched))
+            kafkaTemplate.send(topic, enriched.userId ?: eventId, objectMapper.writeValueAsString(enriched))
         }
         return IngestResponse(accepted = events.size)
     }

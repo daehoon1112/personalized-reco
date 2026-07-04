@@ -44,7 +44,9 @@ node_modules/
 .pnpm-store/
 
 # ───────── 데이터 / 모델 산출물 ─────────
-data/
+# data/는 로컬 산출물이지만 samples(합성 예시·재생성 스크립트)는 README/시드가 참조하므로 추적
+data/*
+!data/samples/
 *.parquet
 *.feather
 *.csv.gz

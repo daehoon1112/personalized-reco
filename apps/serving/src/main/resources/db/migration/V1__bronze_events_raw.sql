@@ -1,5 +1,7 @@
 -- Bronze: 받은 그대로의 불변 이벤트 (append-only).
--- NOTE: 임시 초기화 스크립트. #5에서 Flyway가 스키마 소유권을 가져가면 이 파일은 제거된다.
+-- 컨벤션(셀러업 DB 가이드) 도입 이전 테이블 — 컨슈머(#13 consumer.py)와 기존 볼륨 호환을 위해
+-- infra/postgres/init/01_bronze.sql 스키마를 그대로 이관 (IF NOT EXISTS: 기존 볼륨에서 무해 통과).
+-- 컨벤션 정렬(리네임 등)은 후속 이슈에서.
 
 CREATE TABLE IF NOT EXISTS events_raw (
     id           BIGSERIAL   PRIMARY KEY,
@@ -18,3 +20,5 @@ CREATE TABLE IF NOT EXISTS events_raw (
 CREATE INDEX IF NOT EXISTS idx_events_raw_event_ts ON events_raw (event_ts);
 CREATE INDEX IF NOT EXISTS idx_events_raw_type ON events_raw (event_type);
 CREATE INDEX IF NOT EXISTS idx_events_raw_user ON events_raw (user_id);
+
+COMMENT ON TABLE events_raw IS '브론즈원본이벤트(컨벤션이전테이블)';

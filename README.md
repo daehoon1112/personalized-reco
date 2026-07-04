@@ -12,6 +12,68 @@
 
 ---
 
+## 실행 방법
+
+**준비물**: JDK 25 · Docker · [uv](https://docs.astral.sh/uv/) (Python 3.12는 uv가 알아서 받는다)
+
+### 전체 스택 — 한 방 실행
+
+```bash
+make dev   # 인프라(Postgres+Kafka) → serving(마이그레이션+시드) → bronze-sink 순서로 전부 기동
+```
+
+- 앱 로그: `data/logs/serving.log`, `data/logs/bronze-sink.log`
+- **Ctrl-C** 로 앱 두 개만 내려간다 — 인프라는 유지(내리려면 `make down`)
+- 준비 완료 순서를 보장한다: serving 헬스(=스키마·시드 완료) 확인 후에 bronze-sink를 띄운다
+
+### serving만 실행
+
+```bash
+make run-serving        # = ./gradlew :apps:serving:bootRun
+```
+
+이 한 명령이 순서대로 다 한다:
+
+1. **인프라 자동 기동** — spring-boot-docker-compose가 `infra/docker-compose.yml`의
+   Postgres(5432) + Kafka(9092)를 띄운다. 앱을 꺼도 인프라는 남는다(start-only).
+2. **스키마 마이그레이션** — Flyway V1~V4 (bronze / 메타 / silver / gold, [docs/data-model.md](./docs/data-model.md))
+3. **샘플 데이터 시드** — 합성 이벤트 1000건 + item 223 + user_profile 85를 멱등 적재
+   (bootRun 기본 `seed` 프로파일. 운영 jar 실행에는 적용되지 않는다)
+
+떠 있는지 확인:
+
+```bash
+curl localhost:8080/health                        # {"status":"UP"}
+curl "localhost:8080/api/recommendations?userId=u-000116"   # 예시 추천 (아직 하드코딩, #8)
+
+# 이벤트 수집 → Kafka produce → 202
+curl -X POST localhost:8080/events -H 'Content-Type: application/json' \
+  -d @data/samples/ingest_batch.sample.json
+```
+
+### bronze-sink 컨슈머 (Kafka → bronze, Kotlin)
+
+```bash
+make consume       # = ./gradlew :apps:bronze-sink:bootRun — 상시 데몬, Ctrl-C로 종료
+```
+
+Python 배치·테스트를 돌릴 때는 `uv sync` 한 번.
+
+### 자주 쓰는 태스크
+
+```bash
+make up / down         # 인프라만 기동/종료 (docker compose)
+make migrate           # 앱 기동 없이 스키마만 적용 (시드 X)
+make build             # Kotlin + Python 전체 빌드
+make test              # 단위 · 계약 · 메트릭 · 행동 (빠름, Docker 불필요)
+make test-integration  # E2E · 통합 (Testcontainers, Docker 필요)
+```
+
+샘플 데이터를 다시 만들려면 `python3 data/samples/generate.py` →
+`python3 data/samples/to_seed_sql.py` (시드 SQL 재생성, 자세한 포맷은 `data/samples/README.md`).
+
+---
+
 ## 아키텍처: 2단계 파이프라인 + 피드백 루프
 
 후보 생성(retrieval)으로 빠르게 좁히고, 랭킹(ranking)으로 정밀하게 정렬한 뒤, 노출 결과를
@@ -38,8 +100,9 @@ flowchart LR
 
 ## 시스템 구성 (폴리글랏 · 비동기 수집)
 
-비즈니스/서빙은 **Kotlin(Spring Boot)**, ML·데이터 파이프라인은 **Python(uv)**, 둘은
-**Protobuf로 정의한 단일 이벤트 스키마**를 공유한다.
+서빙·수집·적재(상시 실행)는 **Kotlin(Spring Boot)** — `serving`, `bronze-sink` 두 앱.
+ML·데이터 배치는 **Python(uv)**. 둘은 **단일 이벤트 스키마**를 공유한다
+(현재 `packages/event-contract`(Kotlin) ↔ `py_common.event`(Python) 거울상, 추후 Protobuf 코드젠 #4).
 
 **핫 패스 / 콜드 패스를 분리한다.** 이벤트 수집은 동기 DB 쓰기가 아니라 **Kafka(KRaft)** 로
 produce 후 `202` 즉시 반환하고(impression 로깅도 fire-and-forget), 컨슈머가 비동기로 적재한다.
@@ -55,10 +118,10 @@ flowchart LR
     subgraph kt["Kotlin · Spring Boot"]
         ING["수집 API<br/>produce → 202"]
         SRV["서빙 API<br/>+ 콜드스타트 폴백"]
+        SINK["bronze-sink 컨슈머<br/>→ bronze 적재"]
     end
 
     subgraph py["Python · uv"]
-        CONS["이벤트 컨슈머<br/>→ bronze 적재"]
         LBL["Silver 라벨링"]
         BATCH["Gold · 인기순 랭킹"]
         EVAL["오프라인 평가"]
@@ -68,8 +131,8 @@ flowchart LR
     C -->|추천 요청| SRV
     ING --> KAFKA
     SRV -. impression .-> KAFKA
-    KAFKA --> CONS
-    CONS --> PG
+    KAFKA --> SINK
+    SINK --> PG
     SRV --> PG
     PG --> LBL
     LBL --> PG
@@ -117,10 +180,10 @@ sequenceDiagram
 ## 기술 스택
 
 ### 서빙 · 비즈니스 로직 (JVM)
-- **Kotlin** — JDK **21 LTS** 툴체인 고정 (로컬은 JDK 25이나 라이브러리 호환성 위해 Gradle toolchain으로 핀)
-- **Spring Boot 3.x** — Spring Web, Spring Data JDBC, Validation, Actuator/Micrometer, **Spring for Apache Kafka**
+- **Kotlin 2.3** — JDK **25** 툴체인 (Gradle 9.6+)
+- **Spring Boot 4.x** — Spring WebMVC, JDBC, **Spring for Apache Kafka**, spring-boot-docker-compose(로컬 개발)
 - 빌드: **Gradle (Kotlin DSL)** + Wrapper
-- DB 마이그레이션: **Flyway** (DB 스키마 소유자 = JVM 측, Spring Boot가 기동 시 적용)
+- DB 마이그레이션: **Flyway** (DB 스키마 소유자 = JVM 측, Spring Boot가 기동 시 적용 · `make migrate`로 단독 실행)
 - 린트/포맷: **ktlint** + **detekt**
 
 ### 메시징 (비동기 수집)
@@ -150,11 +213,13 @@ sequenceDiagram
 ```text
 personalized-reco/
 ├─ apps/
-│  ├─ serving/          # Kotlin · Spring Boot — 수집 API(producer) + 추천 서빙 (+ Flyway)
-│  └─ pipelines/        # Python — Kafka 컨슈머(bronze 적재) · silver 라벨링 · gold/인기순 · 평가 · 합성 이벤트
+│  ├─ serving/          # Kotlin · Spring Boot — 수집 API(producer) + 추천 서빙 (+ Flyway 스키마 소유)
+│  ├─ bronze-sink/      # Kotlin · Spring Boot — Kafka 컨슈머(상시 데몬) → bronze 적재
+│  └─ pipelines/        # Python — silver 라벨링 · gold/인기순 · 평가 · 합성 이벤트 (배치)
 ├─ packages/
+│  ├─ event-contract/   # Kotlin 이벤트 계약 (serving·bronze-sink 공유, proto #4 전 수동 정의)
 │  ├─ schema-py/        # protobuf → Python 타입 코드젠 산출물
-│  └─ py-common/        # Python 공유 (DB 액세스 · 설정 · 지표 유틸)
+│  └─ py-common/        # Python 공유 (이벤트 계약 · DB 액세스 · 설정 · 지표 유틸)
 ├─ contracts/proto/     # ★ 이벤트/아이템/유저 스키마 단일 소스 + buf.yaml
 ├─ infra/
 │  └─ docker-compose.yml  # PostgreSQL + Kafka(KRaft)
@@ -185,7 +250,7 @@ flowchart TB
 
     subgraph SLOW["make test-integration — Testcontainers · Docker 필요"]
         ke["Kotlin E2E<br/>실제 Kafka + @SpringBootTest<br/>POST /events → 토픽 확인"]
-        pe["Python 통합<br/>Kafka + Postgres<br/>produce → consume → Bronze 멱등"]
+        pe["bronze-sink E2E<br/>Kafka + Postgres<br/>produce → 리스너 → Bronze 멱등"]
     end
 
     FAST --> SLOW
@@ -225,11 +290,13 @@ make test-integration  # E2E · 통합 (Testcontainers, Docker 필요)
 
 원천 이벤트(atomic)는 그대로는 학습에 못 쓴다. **전부 Postgres** 안에서 레이어로 가공해 모델에 먹인다.
 
-| 레이어 | 내용 | 예시 테이블 |
+| 레이어 | 내용 | 테이블 |
 |---|---|---|
 | **Bronze** | 받은 그대로의 불변 이벤트 (append-only) | `events_raw` |
-| **Silver** | 세션화·중복제거 + impression↔결과 조인 **라벨링** | `labeled_impressions` |
-| **Gold** | 모델별 학습 입력 | `item_popularity`, `user_item_interactions` |
+| **Silver** | 세션화·중복제거 + impression↔결과 조인 **라벨링** | `impression_label` |
+| **Gold** | 모델별 학습 입력 + 서빙 결과 | `item_popularity`, `user_item_interaction`, `recommendation` |
+
+테이블 정의·컨벤션·attribution 규칙은 [docs/data-model.md](./docs/data-model.md) 참조.
 
 모델 단계별 입력 구조:
 

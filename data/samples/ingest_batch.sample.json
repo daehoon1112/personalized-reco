@@ -1,0 +1,249 @@
+[
+  {
+    "eventId": "8c932752-7ddf-4be3-87d9-23d443f6a23c",
+    "eventType": "impression",
+    "userId": "u-000116",
+    "itemId": "p-0120",
+    "sessionId": "5bbf563c-1555-4083-befb-11c44edeee63",
+    "position": 1,
+    "consent": true,
+    "ts": "2026-06-27T00:15:00.000Z",
+    "context": {
+      "device": "pc",
+      "page": "category",
+      "requestId": "3729ac5a-41c0-4c60-ac07-2a9a065869e1",
+      "modelVersion": "pop-v0"
+    }
+  },
+  {
+    "eventId": "6d1a3be6-0e82-421d-99f1-1a3c9c243ac1",
+    "eventType": "impression",
+    "userId": "u-000116",
+    "itemId": "p-0147",
+    "sessionId": "5bbf563c-1555-4083-befb-11c44edeee63",
+    "position": 2,
+    "consent": true,
+    "ts": "2026-06-27T00:15:00.031Z",
+    "context": {
+      "device": "pc",
+      "page": "category",
+      "requestId": "3729ac5a-41c0-4c60-ac07-2a9a065869e1",
+      "modelVersion": "pop-v0"
+    }
+  },
+  {
+    "eventId": "601d9e39-d672-45af-a425-e558967c0a51",
+    "eventType": "click",
+    "userId": "u-000116",
+    "itemId": "p-0147",
+    "sessionId": "5bbf563c-1555-4083-befb-11c44edeee63",
+    "position": 2,
+    "consent": true,
+    "ts": "2026-06-27T00:15:36.042Z",
+    "context": {
+      "device": "pc",
+      "page": "category",
+      "requestId": "3729ac5a-41c0-4c60-ac07-2a9a065869e1",
+      "modelVersion": "pop-v0"
+    }
+  },
+  {
+    "eventId": "5cc8176b-debf-4ac9-bb32-4166839cc185",
+    "eventType": "cart",
+    "userId": "u-000116",
+    "itemId": "p-0147",
+    "sessionId": "5bbf563c-1555-4083-befb-11c44edeee63",
+    "position": null,
+    "consent": true,
+    "ts": "2026-06-27T00:17:11.042Z",
+    "context": {
+      "device": "pc",
+      "page": "category",
+      "requestId": "3729ac5a-41c0-4c60-ac07-2a9a065869e1",
+      "modelVersion": "pop-v0",
+      "quantity": 3
+    }
+  },
+  {
+    "eventId": "ad50bb55-8680-4403-b8eb-2b205d270163",
+    "eventType": "impression",
+    "userId": "u-000116",
+    "itemId": "p-0019",
+    "sessionId": "5bbf563c-1555-4083-befb-11c44edeee63",
+    "position": 3,
+    "consent": true,
+    "ts": "2026-06-27T00:17:11.042Z",
+    "context": {
+      "device": "pc",
+      "page": "category",
+      "requestId": "3729ac5a-41c0-4c60-ac07-2a9a065869e1",
+      "modelVersion": "pop-v0"
+    }
+  },
+  {
+    "eventId": "c2cefa9f-fea6-49ea-b9ec-8a8dbbf588ca",
+    "eventType": "impression",
+    "userId": "u-000116",
+    "itemId": "p-0005",
+    "sessionId": "5bbf563c-1555-4083-befb-11c44edeee63",
+    "position": 4,
+    "consent": true,
+    "ts": "2026-06-27T00:17:11.051Z",
+    "context": {
+      "device": "pc",
+      "page": "category",
+      "requestId": "3729ac5a-41c0-4c60-ac07-2a9a065869e1",
+      "modelVersion": "pop-v0"
+    }
+  },
+  {
+    "eventId": "b651af68-c7d2-47e0-ab98-98537deb7495",
+    "eventType": "impression",
+    "userId": "u-000116",
+    "itemId": "p-0030",
+    "sessionId": "5bbf563c-1555-4083-befb-11c44edeee63",
+    "position": 5,
+    "consent": true,
+    "ts": "2026-06-27T00:17:11.057Z",
+    "context": {
+      "device": "pc",
+      "page": "category",
+      "requestId": "3729ac5a-41c0-4c60-ac07-2a9a065869e1",
+      "modelVersion": "pop-v0"
+    }
+  },
+  {
+    "eventId": "3d1ca368-dc8f-4d68-a1d3-ae0a12806ccb",
+    "eventType": "impression",
+    "userId": "u-000116",
+    "itemId": "p-0290",
+    "sessionId": "5bbf563c-1555-4083-befb-11c44edeee63",
+    "position": 6,
+    "consent": true,
+    "ts": "2026-06-27T00:17:11.088Z",
+    "context": {
+      "device": "pc",
+      "page": "category",
+      "requestId": "3729ac5a-41c0-4c60-ac07-2a9a065869e1",
+      "modelVersion": "pop-v0"
+    }
+  },
+  {
+    "eventId": "9cce11ab-42af-4224-8d89-1bcbf664886e",
+    "eventType": "click",
+    "userId": "u-000116",
+    "itemId": "p-0290",
+    "sessionId": "5bbf563c-1555-4083-befb-11c44edeee63",
+    "position": 6,
+    "consent": true,
+    "ts": "2026-06-27T00:18:07.116Z",
+    "context": {
+      "device": "pc",
+      "page": "category",
+      "requestId": "3729ac5a-41c0-4c60-ac07-2a9a065869e1",
+      "modelVersion": "pop-v0"
+    }
+  },
+  {
+    "eventId": "c9211651-9ee7-4e68-8eb7-cae8cfaf91e2",
+    "eventType": "cart",
+    "userId": "u-000116",
+    "itemId": "p-0290",
+    "sessionId": "5bbf563c-1555-4083-befb-11c44edeee63",
+    "position": null,
+    "consent": true,
+    "ts": "2026-06-27T00:21:42.116Z",
+    "context": {
+      "device": "pc",
+      "page": "category",
+      "requestId": "3729ac5a-41c0-4c60-ac07-2a9a065869e1",
+      "modelVersion": "pop-v0",
+      "quantity": 1
+    }
+  },
+  {
+    "eventId": "6f1ed8f5-d48f-489c-856b-12431e6e63a7",
+    "eventType": "purchase",
+    "userId": "u-000116",
+    "itemId": "p-0290",
+    "sessionId": "5bbf563c-1555-4083-befb-11c44edeee63",
+    "position": null,
+    "consent": true,
+    "ts": "2026-06-27T00:33:46.116Z",
+    "context": {
+      "device": "pc",
+      "page": "category",
+      "requestId": "3729ac5a-41c0-4c60-ac07-2a9a065869e1",
+      "modelVersion": "pop-v0",
+      "orderId": "o-0cdf6792",
+      "quantity": 1,
+      "unitPrice": 171300,
+      "amount": 171300,
+      "currency": "KRW"
+    }
+  },
+  {
+    "eventId": "f8e5367f-d9fc-4269-9fcc-f16fdc705920",
+    "eventType": "impression",
+    "userId": "u-000116",
+    "itemId": "p-0250",
+    "sessionId": "5bbf563c-1555-4083-befb-11c44edeee63",
+    "position": 7,
+    "consent": true,
+    "ts": "2026-06-27T00:33:46.116Z",
+    "context": {
+      "device": "pc",
+      "page": "category",
+      "requestId": "3729ac5a-41c0-4c60-ac07-2a9a065869e1",
+      "modelVersion": "pop-v0"
+    }
+  },
+  {
+    "eventId": "d465ff06-e769-491e-a656-551fd84f3935",
+    "eventType": "click",
+    "userId": "u-000116",
+    "itemId": "p-0250",
+    "sessionId": "5bbf563c-1555-4083-befb-11c44edeee63",
+    "position": 7,
+    "consent": true,
+    "ts": "2026-06-27T00:34:54.126Z",
+    "context": {
+      "device": "pc",
+      "page": "category",
+      "requestId": "3729ac5a-41c0-4c60-ac07-2a9a065869e1",
+      "modelVersion": "pop-v0"
+    }
+  },
+  {
+    "eventId": "7dbb4534-62a8-4fa9-ad36-20ac3c3d2f6b",
+    "eventType": "impression",
+    "userId": "u-000116",
+    "itemId": "p-0006",
+    "sessionId": "5bbf563c-1555-4083-befb-11c44edeee63",
+    "position": 8,
+    "consent": true,
+    "ts": "2026-06-27T00:34:54.126Z",
+    "context": {
+      "device": "pc",
+      "page": "category",
+      "requestId": "3729ac5a-41c0-4c60-ac07-2a9a065869e1",
+      "modelVersion": "pop-v0"
+    }
+  },
+  {
+    "eventId": "9e85aef6-beda-4ac6-bb97-7af34a28befa",
+    "eventType": "impression",
+    "userId": "u-000116",
+    "itemId": "p-0130",
+    "sessionId": "5bbf563c-1555-4083-befb-11c44edeee63",
+    "position": 9,
+    "consent": true,
+    "ts": "2026-06-27T00:34:54.143Z",
+    "context": {
+      "device": "pc",
+      "page": "category",
+      "requestId": "3729ac5a-41c0-4c60-ac07-2a9a065869e1",
+      "modelVersion": "pop-v0"
+    }
+  }
+]

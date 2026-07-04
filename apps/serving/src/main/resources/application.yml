@@ -1,6 +1,18 @@
 spring:
   application:
     name: personalized-reco-serving
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/reco}
+    username: ${DB_USER:reco}
+    password: ${DB_PASSWORD:reco}
+  flyway:
+    enabled: true # 기동 시 자동 마이그레이션 (스키마 소유권은 serving/Flyway, #5)
+  # bootRun(developmentOnly) 시 infra/docker-compose.yml의 Postgres+Kafka 자동 기동.
+  # start-only: 앱 종료 후에도 인프라 유지 (Python 컨슈머 등이 계속 사용)
+  docker:
+    compose:
+      file: ../../infra/docker-compose.yml
+      lifecycle-management: start-only
   kafka:
     bootstrap-servers: ${KAFKA_BOOTSTRAP:localhost:9092}
     producer:
@@ -14,3 +26,13 @@ server:
 app:
   kafka:
     events-topic: events
+
+---
+# seed 프로파일: 스키마에 더해 합성 샘플 1000건(+item/user_profile) 멱등 시드.
+# bootRun은 기본으로 이 프로파일을 켠다(build.gradle.kts). 운영 배포에선 켜지 말 것.
+spring:
+  config:
+    activate:
+      on-profile: seed
+  flyway:
+    locations: classpath:db/migration,classpath:db/seed
