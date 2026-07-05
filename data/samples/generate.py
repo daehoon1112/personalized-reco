@@ -9,6 +9,7 @@ import csv
 import json
 import random
 import uuid
+from collections import Counter
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
@@ -171,7 +172,6 @@ full = next(evs for evs in by_session.values()
 with open(out / "ingest_batch.sample.json", "w") as f:
     json.dump(full, f, ensure_ascii=False, indent=2)
 
-from collections import Counter
 c = Counter(e["eventType"] for e in events)
 print(f"events: {len(events)} -> {dict(c)}")
 print(f"users: {len(used_users)}, items: {len(used_items)}, sessions: {len(by_session)}")

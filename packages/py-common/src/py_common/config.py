@@ -10,10 +10,12 @@ from dataclasses import dataclass
 class Settings:
     database_url: str = "postgresql://reco:reco@localhost:5432/reco"
     kafka_bootstrap: str = "localhost:9092"
+    serving_url: str = "http://localhost:8080"
 
 
 def load_settings() -> Settings:
     return Settings(
         database_url=os.environ.get("DATABASE_URL", Settings.database_url),
         kafka_bootstrap=os.environ.get("KAFKA_BOOTSTRAP", Settings.kafka_bootstrap),
+        serving_url=os.environ.get("SERVING_URL", Settings.serving_url),
     )

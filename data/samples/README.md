@@ -47,4 +47,6 @@ curl -X POST localhost:8080/events -H 'Content-Type: application/json' \
 - 전부 **합성 데이터**다. 아임웹 운영/개발 DB에서 나온 값이 아니며 개인정보 없음.
 - 분포는 대략 현실적으로만 맞춤: CTR 17%, click→cart 33%, cart→purchase 40%, 아이템 인기 zipf 편중.
 - 재생성: `python3 data/samples/generate.py` (표준 라이브러리만 사용, seed 고정).
-  합성 이벤트 생성기를 `apps/pipelines`로 정식 편입할 때(모노레포 구조상 pipelines 담당) 이 스크립트를 기반으로 할 것.
+- **정식 생성기는 `reco-pipelines seed`(#9, `apps/pipelines/src/pipelines/simulator.py`)** — 이 스크립트를
+  기반으로 편입됐고 position-decay CTR이 추가됐다. `--dry-run`이 이 스크립트의 후계(JSONL stdout),
+  기본 동작은 `POST /events` 전송(`make seed`). 여기 정적 샘플 파일들은 문서·수동 테스트용으로 유지.
