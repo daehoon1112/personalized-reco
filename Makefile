@@ -46,6 +46,10 @@ dev: bootstrap ## 전체 스택 한 방 기동: 툴체인 확인 + 인프라 + s
 run-serving: ## Kotlin 서빙 앱 실행 (예시 API, :8080)
 	$(GRADLE) :apps:serving:bootRun
 
+.PHONY: ui
+ui: ## 데모 스토어프론트 dev 서버 (:5173 → :8080 프록시, 백엔드는 make dev 먼저)
+	cd apps/web && npm install --silent && npm run dev
+
 .PHONY: lint
 lint: ## 린트 (ruff)
 	$(UV) run ruff check .

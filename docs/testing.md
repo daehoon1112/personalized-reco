@@ -68,6 +68,15 @@ pytest -m integration      # Testcontainers 통합만 (Docker 필요)
 
 ---
 
+## 스토어프론트 (apps/web) — vitest
+
+- **트래커 단위 테스트**(`src/tracker.test.ts`): 이벤트 엔벨로프 계약(position 규칙 · requestId 공유 ·
+  purchase context 완비 · consent 플래그)과 배치/즉시 전송 로직을 sender 주입으로 검증. 네트워크 없음.
+- UI 컴포넌트는 데모 성격이라 스냅샷/렌더 테스트를 강제하지 않는다 — **이벤트 계약이 지켜지는지**가 핵심.
+- 실행: `cd apps/web && npm test` (CI 편입은 #12).
+
+---
+
 ## 공통 규칙
 
 - **결정성**: 단위 계층은 고정 시드·고정 픽스처. 벽시계 시간·네트워크 금지.

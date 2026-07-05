@@ -14,7 +14,7 @@
 
 ## 실행 방법
 
-**준비물**: JDK 25 · Docker · [uv](https://docs.astral.sh/uv/) (Python 3.12는 uv가 알아서 받는다)
+**준비물**: JDK 25 · Docker · [uv](https://docs.astral.sh/uv/) (Python 3.12는 uv가 알아서 받는다) · Node (스토어프론트용)
 
 ### 전체 스택 — 한 방 실행
 
@@ -50,6 +50,17 @@ curl "localhost:8080/api/recommendations?userId=u-000116"   # 예시 추천 (아
 curl -X POST localhost:8080/events -H 'Content-Type: application/json' \
   -d @data/samples/ingest_batch.sample.json
 ```
+
+### 데모 스토어프론트 (apps/web)
+
+```bash
+make ui    # Vite dev 서버 :5173 — /api·/events는 :8080으로 프록시 (백엔드는 make dev 먼저)
+```
+
+상품 그리드(`GET /api/items`) + 추천 레일(`GET /api/recommendations`)을 노출하고,
+브라우저 행동을 그대로 이벤트로 흘린다 — 카드가 뷰포트에 보이면 **impression**(position 포함),
+클릭하면 **click**, 상세에서 담기/구매하면 **cart/purchase** → `POST /events` → Kafka → bronze.
+헤더에서 시드 유저 전환(세션 재발급) · 추적 동의(consent) 토글 가능.
 
 ### bronze-sink 컨슈머 (Kafka → bronze, Kotlin)
 
@@ -213,9 +224,10 @@ sequenceDiagram
 ```text
 personalized-reco/
 ├─ apps/
-│  ├─ serving/          # Kotlin · Spring Boot — 수집 API(producer) + 추천 서빙 (+ Flyway 스키마 소유)
+│  ├─ serving/          # Kotlin · Spring Boot — 수집 API(producer) + 추천 서빙 + 카탈로그 메타 API (+ Flyway 스키마 소유)
 │  ├─ bronze-sink/      # Kotlin · Spring Boot — Kafka 컨슈머(상시 데몬) → bronze 적재
-│  └─ pipelines/        # Python — silver 라벨링 · gold/인기순 · 평가 · 합성 이벤트 (배치)
+│  ├─ pipelines/        # Python — silver 라벨링 · gold/인기순 · 평가 · 합성 이벤트 (배치)
+│  └─ web/              # TypeScript · Vite+React — 데모 스토어프론트 (추천 노출 + 이벤트 로깅)
 ├─ packages/
 │  ├─ event-contract/   # Kotlin 이벤트 계약 (serving·bronze-sink 공유, proto #4 전 수동 정의)
 │  ├─ schema-py/        # protobuf → Python 타입 코드젠 산출물
