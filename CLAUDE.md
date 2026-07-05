@@ -46,9 +46,10 @@
 ## 모노레포 구조
 
 ```
-apps/serving        # Kotlin · Spring Boot — 수집 API(producer) + 추천 서빙 (+ Flyway 스키마 소유)
+apps/serving        # Kotlin · Spring Boot — 수집 API(producer) + 추천 서빙 + 카탈로그 메타 API (+ Flyway 스키마 소유)
 apps/bronze-sink    # Kotlin · Spring Boot — Kafka 컨슈머(상시 데몬) → bronze 적재
 apps/pipelines      # Python — silver 라벨링 · gold/인기순 · 평가 · 합성 이벤트 (배치)
+apps/web            # TypeScript · Vite+React — 데모 스토어프론트 (추천 노출 + 행동 이벤트 로깅, make ui)
 packages/event-contract  # Kotlin 이벤트 계약 (serving·bronze-sink 공유, proto #4 전 수동 정의)
 docs/testing.md     # 모듈별 테스트 정책 (Kotest/MockK/Testcontainers, Python 4종)
 packages/schema-py  # protobuf → Python 코드젠

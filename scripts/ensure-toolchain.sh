@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# 로컬 툴체인 보장: JDK 25 + uv + Python 3.12 없으면 설치한다 (macOS/Homebrew 기준).
+# 로컬 툴체인 보장: JDK 25 + uv + Python 3.12 + Node 없으면 설치한다 (macOS/Homebrew 기준).
 # make dev 앞단에서 호출되며, 단독 실행도 가능: make bootstrap
 set -euo pipefail
 
@@ -38,4 +38,14 @@ else
   echo "▸ Python 3.12 없음 → uv로 설치"
   uv python install 3.12
   echo "  ✓ Python: $(uv python find '>=3.12')"
+fi
+
+# 4) Node — 스토어프론트(apps/web, Vite) 빌드/개발 서버용
+if command -v node >/dev/null 2>&1; then
+  echo "  ✓ Node: $(node --version)"
+else
+  echo "▸ Node 없음 → 설치"
+  need_brew
+  brew install node
+  echo "  ✓ Node: $(node --version)"
 fi
