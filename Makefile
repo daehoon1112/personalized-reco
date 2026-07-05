@@ -66,12 +66,14 @@ consume: ## (#13) bronze-sink(Kotlin) — Kafka → bronze 적재 (무한 실행
 migrate: ## (#5) Flyway 마이그레이션 (Postgres 필요: make up 먼저)
 	$(GRADLE) :apps:serving:flywayMigrate
 
+.PHONY: seed
+seed: ## (#9) 합성 트래픽 시뮬레이터 → POST /events (스택 필요: make dev 먼저)
+	$(UV) run reco-pipelines seed
+
 # --- 아래는 후속 이슈에서 채워질 자리표시자 ---
-.PHONY: codegen seed label batch eval
+.PHONY: codegen label batch eval
 codegen: ## (#4) protobuf 코드젠 (buf)
 	@echo "TODO(#4): buf generate"
-seed:    ## (#9) 합성 이벤트 → Kafka produce
-	@echo "TODO(#9): seed synthetic events"
 label:   ## (#14) silver 세션화/라벨링
 	@echo "TODO(#14): build silver labels"
 batch:   ## (#10) gold 인기순 배치
