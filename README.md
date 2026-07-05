@@ -298,6 +298,109 @@ make test-integration  # E2E · 통합 (Testcontainers, Docker 필요)
 
 테이블 정의·컨벤션·attribution 규칙은 [docs/data-model.md](./docs/data-model.md) 참조.
 
+### 데이터 모델 (Flyway V1~V4)
+
+스키마는 `apps/serving`의 Flyway 마이그레이션이 소유한다. 레이어 간 **물리 FK 없음**(논리 참조만) —
+silver/gold는 bronze에서 전량 재생성 가능한 파생 레이어라 재빌드로 대체한다.
+
+```mermaid
+erDiagram
+    events_raw {
+        bigserial id PK
+        text event_id UK
+        text event_type "impression|click|cart|purchase"
+        text user_id
+        text item_id
+        text session_id
+        int position "노출 순위 (bias 보정용)"
+        boolean consent
+        timestamptz event_ts
+        jsonb payload "원본 그대로"
+    }
+    item {
+        bigserial id PK
+        varchar item_id UK "비즈니스 키"
+        varchar name
+        varchar category
+        bigint price
+        jsonb attrs
+    }
+    user_profile {
+        bigserial id PK
+        varchar user_id UK "비즈니스 키"
+        varchar gender
+        int birth_year
+        boolean is_consent
+    }
+    impression_label {
+        bigserial id PK
+        varchar impression_id UK "events_raw.event_id 논리 참조"
+        varchar user_id
+        varchar item_id
+        varchar request_id "노출 배치 키"
+        int position
+        boolean is_click
+        boolean is_purchase
+        smallint label "0=none 1=click 2=cart 3=purchase"
+        varchar label_version "attribution 규칙 버전"
+    }
+    item_popularity {
+        bigserial id PK
+        date base_date
+        smallint window_days "7|30"
+        varchar item_id
+        bigint click_count
+        bigint purchase_count
+        numeric score "행동 가중합 + 시간 감쇠"
+    }
+    user_item_interaction {
+        bigserial id PK
+        varchar user_id
+        varchar item_id
+        numeric weight "암묵 피드백 가중합"
+        timestamptz last_event_date
+    }
+    recommendation {
+        bigserial id PK
+        varchar user_id "_global = 콜드스타트 폴백"
+        smallint rank
+        varchar item_id
+        varchar strategy "popularity|cf"
+        varchar model_version
+    }
+
+    events_raw ||..o{ impression_label : "라벨링 배치 (silver)"
+    impression_label ||..o{ item_popularity : "인기순 집계 (gold)"
+    impression_label ||..o{ user_item_interaction : "CF 입력 집계 (gold)"
+    item_popularity ||..o{ recommendation : "배치 사전계산"
+    item ||..o{ events_raw : "item_id 논리 참조"
+    user_profile ||..o{ events_raw : "user_id 논리 참조"
+```
+
+| 버전 | 레이어 | 테이블 | 적재 주체 |
+|---|---|---|---|
+| V1 | Bronze | `events_raw` | bronze-sink 컨슈머 (Kafka → append-only) |
+| V2 | 메타 | `item` · `user_profile` | 시드 / 운영 등록 |
+| V3 | Silver | `impression_label` | Python 라벨링 배치 |
+| V4 | Gold | `item_popularity` · `user_item_interaction` · `recommendation` | Python 집계/랭킹 배치 |
+
+### 로컬 실행 시 더미 데이터
+
+`make up`(docker compose)만으로는 스키마도 데이터도 없다 — Flyway·시드는 **serving 기동**
+(`make dev` / `make run-serving`, 기본 `seed` 프로파일)이 수행한다. 시드는 repeatable
+마이그레이션(`R__seed_sample_data.sql`)이라 재기동해도 멱등이다.
+
+| 테이블 | 시드 여부 | 내용 |
+|---|---|---|
+| `events_raw` | ✅ | 합성 이벤트 **1,000건** (impression/click/cart/purchase, `2026-06-27`~) |
+| `item` | ✅ | 상품 **223건** (`p-0001`~) |
+| `user_profile` | ✅ | 유저 **85건** (`u-000001`~) |
+| `impression_label` | ❌ | Python 라벨링 배치 실행 후 채워짐 |
+| `item_popularity` · `user_item_interaction` · `recommendation` | ❌ | Python gold 배치 실행 후 채워짐 |
+
+> `make migrate`는 스키마만 적용하고 시드는 하지 않는다. 시드 원본을 다시 만들려면
+> `data/samples/generate.py` → `to_seed_sql.py` (위 [실행 방법](#실행-방법) 참조).
+
 모델 단계별 입력 구조:
 
 - **인기순 (MVP)**: `(item_id, window, click_cnt, purchase_cnt, score)` 집계.
