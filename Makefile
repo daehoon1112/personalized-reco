@@ -1,8 +1,8 @@
 # personalized-reco — 루트 태스크 러너 (Kotlin/Gradle + Python/uv 통합)
 # JVM은 Gradle Wrapper, Python은 uv로 위임한다.
 
-# JDK 21 LTS 고정 (macOS java_home으로 탐색). 다른 경로면 `make build JAVA_HOME=...`로 덮어쓰기.
-JAVA_HOME ?= $(shell /usr/libexec/java_home -v 21 2>/dev/null)
+# JDK 25 (macOS java_home으로 탐색). 다른 경로면 `make build JAVA_HOME=...`로 덮어쓰기.
+JAVA_HOME ?= $(shell /usr/libexec/java_home -v 25 2>/dev/null)
 export JAVA_HOME
 GRADLE := ./gradlew
 UV := uv
@@ -34,6 +34,10 @@ test-integration: ## 통합/E2E 테스트 (Testcontainers, Docker 필요)
 	$(GRADLE) integrationTest
 	$(UV) run pytest -m integration -v
 
+.PHONY: dev
+dev: ## 전체 스택 한 방 기동: 인프라 + serving + bronze-sink (Ctrl-C로 앱 종료)
+	./scripts/dev-up.sh
+
 .PHONY: run-serving
 run-serving: ## Kotlin 서빙 앱 실행 (예시 API, :8080)
 	$(GRADLE) :apps:serving:bootRun
@@ -51,13 +55,15 @@ up:      ## 인프라 기동 (Postgres + Kafka, 헬시까지 대기)
 down:    ## 인프라 종료
 	$(COMPOSE) down
 
-consume: ## (#13) Kafka 컨슈머 → bronze 적재 (무한 실행, Ctrl-C로 종료)
-	$(UV) run reco-consumer
+consume: ## (#13) bronze-sink(Kotlin) — Kafka → bronze 적재 (무한 실행, Ctrl-C로 종료)
+	$(GRADLE) :apps:bronze-sink:bootRun
+
+.PHONY: migrate
+migrate: ## (#5) Flyway 마이그레이션 (Postgres 필요: make up 먼저)
+	$(GRADLE) :apps:serving:flywayMigrate
 
 # --- 아래는 후속 이슈에서 채워질 자리표시자 ---
-.PHONY: migrate codegen seed label batch eval
-migrate: ## (#5) Flyway 마이그레이션
-	@echo "TODO(#5): flyway migrate"
+.PHONY: codegen seed label batch eval
 codegen: ## (#4) protobuf 코드젠 (buf)
 	@echo "TODO(#4): buf generate"
 seed:    ## (#9) 합성 이벤트 → Kafka produce

@@ -7,12 +7,15 @@ import io.kotest.matchers.nulls.shouldNotBeNull
 import io.kotest.matchers.shouldBe
 import org.apache.kafka.clients.consumer.KafkaConsumer
 import org.apache.kafka.common.serialization.StringDeserializer
+import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.boot.resttestclient.TestRestTemplate
+import org.springframework.boot.resttestclient.autoconfigure.AutoConfigureTestRestTemplate
 import org.springframework.boot.test.context.SpringBootTest
-import org.springframework.boot.test.web.client.TestRestTemplate
 import org.springframework.http.HttpStatus
 import org.springframework.test.context.DynamicPropertyRegistry
 import org.springframework.test.context.DynamicPropertySource
-import org.testcontainers.containers.KafkaContainer
+import org.testcontainers.kafka.KafkaContainer
+import org.testcontainers.postgresql.PostgreSQLContainer
 import org.testcontainers.utility.DockerImageName
 import java.time.Duration
 import java.util.Properties
@@ -23,13 +26,16 @@ import java.util.Properties
  */
 @Tags("Integration")
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-class EventIngestE2ETest(
-    private val restTemplate: TestRestTemplate,
-) : StringSpec() {
+@AutoConfigureTestRestTemplate // Boot 4: RANDOM_PORT만으로는 TestRestTemplate 빈이 안 뜬다
+class EventIngestE2ETest : StringSpec() {
 
-    override fun extensions() = listOf(SpringExtension)
+    // Kotest 6는 생성자 주입에 프로젝트 레벨 확장 등록이 필요 → 필드 주입으로 대체.
+    @Autowired
+    private lateinit var restTemplate: TestRestTemplate
 
     init {
+        extensions(SpringExtension())
+
         "POST /events 는 Kafka events 토픽으로 produce 된다" {
             val body = listOf(
                 mapOf("eventType" to "impression", "userId" to "u1", "itemId" to "i1"),
@@ -63,14 +69,24 @@ class EventIngestE2ETest(
 
     companion object {
         // lazy: 컨테이너는 첫 접근(통합 테스트 컨텍스트 기동) 시에만 시작 → 단위 test 에서는 절대 안 뜬다.
+        // Testcontainers 2.x 신형 KafkaContainer(apache/kafka 이미지, KRaft). 3.9.0은 TC2 기동 스크립트와
+        // 비호환(exit 1)이라 4.x 사용.
         private val kafka: KafkaContainer by lazy {
-            KafkaContainer(DockerImageName.parse("confluentinc/cp-kafka:7.6.1")).also { it.start() }
+            KafkaContainer(DockerImageName.parse("apache/kafka:4.0.0")).also { it.start() }
+        }
+
+        // 앱 기동 시 Flyway가 실제 마이그레이션(V1~V4)을 실행 → 스키마 유효성도 함께 검증된다.
+        private val postgres: PostgreSQLContainer by lazy {
+            PostgreSQLContainer(DockerImageName.parse("postgres:16")).also { it.start() }
         }
 
         @JvmStatic
         @DynamicPropertySource
-        fun kafkaProps(registry: DynamicPropertyRegistry) {
+        fun containerProps(registry: DynamicPropertyRegistry) {
             registry.add("spring.kafka.bootstrap-servers") { kafka.bootstrapServers }
+            registry.add("spring.datasource.url") { postgres.jdbcUrl }
+            registry.add("spring.datasource.username") { postgres.username }
+            registry.add("spring.datasource.password") { postgres.password }
         }
     }
 }

@@ -31,10 +31,10 @@
 
 ## 기술 스택 (확정)
 
-- **서빙 / 비즈니스 (JVM)**: Kotlin + **Spring Boot 3.x**(+ Spring for Apache Kafka),
-  Gradle(Kotlin DSL) + Wrapper, JDK **21 LTS** 툴체인 고정, DB 마이그레이션 **Flyway**(JVM 측 소유).
+- **서빙 / 비즈니스 (JVM)**: Kotlin + **Spring Boot 4.x**(+ Spring for Apache Kafka),
+  Gradle(Kotlin DSL) 9.6+ + Wrapper, JDK **25** 툴체인(로컬 설치 JDK와 일치), DB 마이그레이션 **Flyway**(JVM 측 소유).
 - **메시징**: **Apache Kafka (KRaft 모드, ZooKeeper 없음)** — docker-compose 단일 브로커.
-  수집 API=프로듀서, 별도 컨슈머가 Bronze 적재.
+  수집 API=프로듀서, 별도 컨슈머(apps/bronze-sink, Kotlin)가 Bronze 적재.
 - **ML / 데이터 (Python)**: Python 3.12 + **uv**(워크스페이스/패키지), pandas·numpy·scikit-learn,
   psycopg(Postgres). 모델은 인기순 → implicit/LightFM(CF) → 하이브리드 → 딥러닝 순.
 - **데이터**: **PostgreSQL 16 단일 저장소** — Bronze/Silver/Gold 레이어 + 서빙 결과를 모두 Postgres로
@@ -46,8 +46,10 @@
 ## 모노레포 구조
 
 ```
-apps/serving        # Kotlin · Spring Boot — 수집 API(producer) + 추천 서빙 (+ Flyway)
-apps/pipelines      # Python — Kafka 컨슈머(bronze 적재) · silver 라벨링 · gold/인기순 · 평가 · 합성 이벤트
+apps/serving        # Kotlin · Spring Boot — 수집 API(producer) + 추천 서빙 (+ Flyway 스키마 소유)
+apps/bronze-sink    # Kotlin · Spring Boot — Kafka 컨슈머(상시 데몬) → bronze 적재
+apps/pipelines      # Python — silver 라벨링 · gold/인기순 · 평가 · 합성 이벤트 (배치)
+packages/event-contract  # Kotlin 이벤트 계약 (serving·bronze-sink 공유, proto #4 전 수동 정의)
 docs/testing.md     # 모듈별 테스트 정책 (Kotest/MockK/Testcontainers, Python 4종)
 packages/schema-py  # protobuf → Python 코드젠
 packages/py-common  # Python 공유 (DB·설정·지표)
@@ -146,7 +148,10 @@ data                # 로컬 산출물 (gitignore)
 - [x] 실시간 vs 배치: **배치 우선**(소규모)으로 확정
 - [x] 이벤트 수집: **비동기 Kafka(KRaft)** 로 확정 (동기 호출 폐기)
 - [x] 학습 데이터 저장: **전부 Postgres(Bronze/Silver/Gold)** 로 확정
+- [x] Attribution window: **click=같은 세션+같은 requestId 귀속, purchase=클릭(또는 cart) 후 24h** —
+      v1 규칙, [docs/data-model.md](./docs/data-model.md) 참조
+- [x] DB 컨벤션: **셀러업 DB 가이드 준수**(PK=surrogate `id` bigserial, `ux_` 유니크 필수, 복수형·과거형 금지,
+      코멘트 필수) + Postgres 적응 규칙 — [docs/data-model.md](./docs/data-model.md) 참조
 - [ ] 북극성 지표 최종 확정 (잠정 CVR / 가드레일 GMV) — 평가 모듈에서 검증 후 확정
 - [ ] 구체 latency SLO·트래픽 목표 (초기 트래픽 측정 후)
-- [ ] Attribution window 구체값(클릭/구매 귀속 시간) — silver 라벨링 구현 시 확정
 - [ ] Redis(서빙 캐시) · 레이크/웨어하우스 분리 도입 시점
