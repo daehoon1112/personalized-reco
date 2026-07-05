@@ -34,8 +34,12 @@ test-integration: ## 통합/E2E 테스트 (Testcontainers, Docker 필요)
 	$(GRADLE) integrationTest
 	$(UV) run pytest -m integration -v
 
+.PHONY: bootstrap
+bootstrap: ## 로컬 툴체인 보장 (JDK 25 · uv · Python 3.12 없으면 설치)
+	./scripts/ensure-toolchain.sh
+
 .PHONY: dev
-dev: ## 전체 스택 한 방 기동: 인프라 + serving + bronze-sink (Ctrl-C로 앱 종료)
+dev: bootstrap ## 전체 스택 한 방 기동: 툴체인 확인 + 인프라 + serving + bronze-sink (Ctrl-C로 앱 종료)
 	./scripts/dev-up.sh
 
 .PHONY: run-serving
