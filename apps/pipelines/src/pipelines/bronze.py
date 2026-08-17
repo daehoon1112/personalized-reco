@@ -32,7 +32,7 @@ LIMIT %(batch_size)s
 OnSkip = Callable[[int, Exception], None]
 
 
-def _log_skip(row_id: int, exc: Exception) -> None:
+def log_skip(row_id: int, exc: Exception) -> None:
     logger.warning("skip bad bronze row id=%d: %s", row_id, exc)
 
 
@@ -40,7 +40,7 @@ def iter_events(
     conn: psycopg.Connection,
     after_id: int = 0,
     batch_size: int = 1000,
-    on_skip: OnSkip = _log_skip,
+    on_skip: OnSkip = log_skip,
 ) -> Iterator[tuple[int, Event]]:
     """events_raw를 id 오름차순(keyset 페이지네이션)으로 순회하며 (id, Event)를 낸다.
 

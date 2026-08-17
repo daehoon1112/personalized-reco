@@ -1,10 +1,20 @@
 """silver 라벨링(#14) 단위 테스트 — DB 없이 build_label_rows의 attribution 로직 검증."""
 
+from __future__ import annotations
+
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
+import psycopg
+
 from pipelines.bronze import iter_events
-from pipelines.label import LABEL_VERSION, ImpressionLabelRow, build_label_rows
+from pipelines.label import (
+    LABEL_VERSION,
+    ImpressionLabelRow,
+    LabelReport,
+    _upsert_rows,
+    build_label_rows,
+)
 from py_common import Event, EventContext, EventType
 
 _T0 = datetime(2026, 6, 27, 0, 0, 0, tzinfo=timezone.utc)
@@ -259,3 +269,104 @@ def test_batch_contract_invariants() -> None:
             anchor = row.click_date or row.cart_date
             assert anchor is not None
             assert row.purchase_date - anchor <= timedelta(hours=24)
+
+
+# --- 적재 회복력: 계약 밖 값 1건이 배치 전체를 롤백시키면 안 된다 ---
+
+
+class _FakeCursor:
+    def __init__(self, conn: _FakeConn) -> None:
+        self._conn = conn
+
+    def __enter__(self) -> _FakeCursor:
+        return self
+
+    def __exit__(self, *_: object) -> None:
+        return None
+
+    def executemany(self, _sql: str, params: list[dict[str, Any]]) -> None:
+        for param in params:
+            self._conn.stage(param)
+
+    def execute(self, _sql: str, param: dict[str, Any]) -> None:
+        self._conn.stage(param)
+
+
+class _FakeConn:
+    """DB 스텁 — `bad`에 든 impression_id를 만나면 psycopg.Error를 던진다.
+
+    커밋 전 스테이징 → commit에서 확정, rollback에서 폐기 (트랜잭션 경계 재현).
+    """
+
+    def __init__(self, bad: set[str]) -> None:
+        self.bad = bad
+        self.committed: list[str] = []
+        self.rollbacks = 0
+        self._staged: list[str] = []
+
+    def stage(self, param: dict[str, Any]) -> None:
+        impression_id = str(param["impression_id"])
+        if impression_id in self.bad:
+            raise psycopg.Error(f"value too long: {impression_id}")
+        self._staged.append(impression_id)
+
+    def cursor(self) -> _FakeCursor:
+        return _FakeCursor(self)
+
+    def commit(self) -> None:
+        self.committed.extend(self._staged)
+        self._staged.clear()
+
+    def rollback(self) -> None:
+        self._staged.clear()
+        self.rollbacks += 1
+
+
+def _row(impression_id: str) -> ImpressionLabelRow:
+    return ImpressionLabelRow(
+        impression_id=impression_id,
+        event_date=_T0,
+        user_id="u-1",
+        item_id="p-1",
+        session_id="s-1",
+        request_id="r-1",
+        position=1,
+        device="pc",
+        page="category",
+        model_version="pop-v0",
+        is_click=False,
+        click_date=None,
+        is_cart=False,
+        cart_date=None,
+        is_purchase=False,
+        purchase_date=None,
+        purchase_amount=None,
+        label=0,
+    )
+
+
+def test_bad_row_does_not_lose_the_rest_of_the_batch() -> None:
+    rows = [_row(f"e-{i}") for i in range(6)]
+    conn = _FakeConn(bad={"e-3"})
+
+    ok, failed = _upsert_rows(conn, rows, chunk_size=2)  # type: ignore[arg-type]
+
+    assert (ok, failed) == (5, 1)
+    assert conn.committed == ["e-0", "e-1", "e-2", "e-4", "e-5"]
+    assert "e-3" not in conn.committed
+
+
+def test_clean_batch_commits_every_chunk_without_fallback() -> None:
+    rows = [_row(f"e-{i}") for i in range(5)]
+    conn = _FakeConn(bad=set())
+
+    ok, failed = _upsert_rows(conn, rows, chunk_size=2)  # type: ignore[arg-type]
+
+    assert (ok, failed) == (5, 0)
+    assert conn.rollbacks == 0
+
+
+def test_report_flags_losses() -> None:
+    assert not LabelReport(labeled=10).has_losses
+    assert LabelReport(labeled=10, skipped_impression=1).has_losses
+    assert LabelReport(labeled=10, failed=1).has_losses

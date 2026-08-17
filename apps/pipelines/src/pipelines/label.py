@@ -18,13 +18,14 @@ from datetime import datetime, timedelta
 
 import psycopg
 
-from pipelines.bronze import OnSkip, iter_events
+from pipelines.bronze import OnSkip, iter_events, log_skip
 from py_common import Event, EventType
 
 logger = logging.getLogger(__name__)
 
 LABEL_VERSION = "v1:click=session+request,purchase=24h"
 _PURCHASE_WINDOW = timedelta(hours=24)
+_UPSERT_CHUNK = 500
 
 AttributionKey = tuple[str | None, str | None, str | None]  # (session_id, request_id, item_id)
 
@@ -81,6 +82,10 @@ def build_label_rows(
 
     click/cart/purchase가 impression보다 나중 bronze 페이지에 있을 수 있어 전량을 먼저
     귀속 키별로 버킷에 담은 뒤 impression마다 조회하는 2-패스 방식이다.
+
+    TODO(#10): 이 방식은 bronze 전량을 메모리에 올린다(`batch_size`는 DB 페이징 크기일 뿐
+    스트리밍이 아니다). 볼륨이 커지면 (a) `iter_events(after_id=...)` 증분 + (b) 세션/시간
+    윈도 단위 분할 처리로 바꿔야 한다 — impression이 가장 볼륨이 큰 이벤트라 OOM 1순위다.
     """
     skip = on_skip if on_skip is not None else _log_label_skip
 
@@ -175,24 +180,89 @@ ON CONFLICT (impression_id) DO UPDATE SET
 """
 
 
+@dataclass(frozen=True, slots=True)
+class LabelReport:
+    """배치 1회 결과. 손실(스킵·실패)을 호출자에게 숫자로 돌려준다 —
+    라벨 수가 조용히 줄어드는 것이 학습 데이터 편향으로 이어지기 때문이다."""
+
+    labeled: int = 0
+    skipped_bronze: int = 0       # payload 계약 위반 (깨진 JSON·tz 없는 ts 등)
+    skipped_impression: int = 0   # 조인 키(session/request/item) 누락으로 귀속 불가
+    failed: int = 0               # impression_label 적재 실패 (길이 초과·타입 불일치 등)
+
+    @property
+    def has_losses(self) -> bool:
+        return bool(self.skipped_bronze or self.skipped_impression or self.failed)
+
+
+def _upsert_rows(
+    conn: psycopg.Connection,
+    rows: list[ImpressionLabelRow],
+    chunk_size: int = _UPSERT_CHUNK,
+) -> tuple[int, int]:
+    """청크 단위로 커밋한다. 청크가 깨지면 행 단위로 재시도해 불량 행만 버린다.
+
+    bronze는 TEXT(무제한)인데 impression_label은 varchar(36)/(50)이고 amount/position은
+    타입 검증이 없다 — 계약 밖 값 1건이 전체를 롤백시키면, bronze는 append-only라
+    그 행을 지우기 전까지 배치가 영구히 실패한다.
+
+    @return (성공 행 수, 실패 행 수)
+    """
+    ok = failed = 0
+    for start in range(0, len(rows), chunk_size):
+        chunk = rows[start : start + chunk_size]
+        params = [asdict(row) for row in chunk]
+        try:
+            with conn.cursor() as cur:
+                cur.executemany(_UPSERT_SQL, params)
+            conn.commit()
+            ok += len(chunk)
+            continue
+        except psycopg.Error as exc:
+            conn.rollback()
+            logger.warning("chunk upsert 실패 → 행 단위 폴백 (offset=%d): %s", start, exc)
+
+        for row, param in zip(chunk, params, strict=True):
+            try:
+                with conn.cursor() as cur:
+                    cur.execute(_UPSERT_SQL, param)
+                conn.commit()
+                ok += 1
+            except psycopg.Error as exc:
+                conn.rollback()
+                failed += 1
+                logger.warning(
+                    "skip bad label row impression_id=%s: %s", row.impression_id, exc
+                )
+    return ok, failed
+
+
 def run_label(
     conn: psycopg.Connection,
     batch_size: int = 1000,
     on_skip: OnSkip | None = None,
     label_skip: LabelSkip | None = None,
-) -> int:
-    """bronze 전량을 읽어 라벨링하고 impression_label에 upsert. 반환값 = upsert된 행 수.
+) -> LabelReport:
+    """bronze 전량을 읽어 라벨링하고 impression_label에 upsert.
 
-    on_skip 미지정 시 bronze.iter_events의 기본 스킵 로거를 그대로 쓴다(중복 정의 방지).
+    on_skip/label_skip 미지정 시 기본 로거로 위임하되, 스킵 건수는 항상 센다.
     """
-    events = (
-        iter_events(conn, batch_size=batch_size, on_skip=on_skip)
-        if on_skip is not None
-        else iter_events(conn, batch_size=batch_size)
+    counts = {"bronze": 0, "impression": 0}
+
+    def count_bronze_skip(row_id: int, exc: Exception) -> None:
+        counts["bronze"] += 1
+        (on_skip or log_skip)(row_id, exc)
+
+    def count_label_skip(row_id: int, reason: str) -> None:
+        counts["impression"] += 1
+        (label_skip or _log_label_skip)(row_id, reason)
+
+    events = iter_events(conn, batch_size=batch_size, on_skip=count_bronze_skip)
+    rows = build_label_rows(events, on_skip=count_label_skip)
+    labeled, failed = _upsert_rows(conn, rows)
+    return LabelReport(
+        labeled=labeled,
+        skipped_bronze=counts["bronze"],
+        skipped_impression=counts["impression"],
+        failed=failed,
     )
-    rows = build_label_rows(events, on_skip=label_skip)
-    if rows:
-        with conn.cursor() as cur:
-            cur.executemany(_UPSERT_SQL, [asdict(row) for row in rows])
-    conn.commit()
-    return len(rows)

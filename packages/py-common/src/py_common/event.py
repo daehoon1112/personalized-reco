@@ -108,6 +108,11 @@ def parse_event(raw: dict[str, Any]) -> Event:
     if not isinstance(ts_raw, str) or not ts_raw:
         raise ValueError("ts 누락")
     ts = datetime.fromisoformat(ts_raw.replace("Z", "+00:00"))
+    if ts.tzinfo is None:
+        # naive datetime은 tz-aware와 비교 시 TypeError라, 한 건이 배치 전체를 죽인다.
+        # UTC로 임의 가정하면 귀속 윈도(24h)가 조용히 틀어지므로 계약 위반으로 처리한다
+        # → 호출자(bronze.iter_events)가 ValueError를 잡아 그 행만 스킵한다.
+        raise ValueError(f"ts에 타임존이 없음: {ts_raw!r}")
 
     context = raw.get("context")
     return Event(
