@@ -23,6 +23,24 @@ markers = [
 line-length = 100
 target-version = "py312"
 
+[tool.ruff.lint]
+# TID: 임포트 경계 규칙. "무엇을 import 할 수 있는가"는 레이어 경계 그 자체라 린트로 잡는다.
+extend-select = ["TID"]
+
+[tool.ruff.lint.flake8-tidy-imports.banned-api]
+# 순수 로직(recommender·metrics 등)은 DB 를 모른다 — 같은 입력에 같은 출력이어야 테스트가 값으로 고정된다.
+# DB 를 아는 경계는 아래 per-file-ignores 에 나열된 파일뿐이고, 늘어날 때마다 여기서 눈에 띈다.
+"psycopg".msg = "DB 접근은 bronze/label 등 배치 경계 모듈에만 둔다. 순수 로직은 값으로 검증한다."
+
+[tool.ruff.lint.per-file-ignores]
+# DB 경계 모듈 — psycopg 를 쓰는 것이 이 파일들의 일이다.
+"apps/pipelines/src/pipelines/bronze.py" = ["TID251"]
+"apps/pipelines/src/pipelines/label.py" = ["TID251"]
+"apps/pipelines/src/pipelines/cli.py" = ["TID251"]
+# 테스트는 psycopg.Error 를 예외 타입으로 참조한다(스텁 커넥션) — DB 접근이 아니다.
+"apps/pipelines/tests/*" = ["TID251"]
+"apps/pipelines/tests/integration/*" = ["TID251"]
+
 [tool.mypy]
 python_version = "3.12"
 strict = true

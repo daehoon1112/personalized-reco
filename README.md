@@ -196,7 +196,10 @@ sequenceDiagram
 - 빌드: **Gradle (Kotlin DSL)** + Wrapper
 - DB 마이그레이션: **Flyway** (DB 스키마 소유자 = JVM 측, Spring Boot가 기동 시 적용 · `make migrate`로 단독 실행)
 - 린트/포맷: **ktlint** (Gradle 플러그인, `make lint` · `gradle build`에 포함 / 자동 수정은 `make format`).
-  예외는 `.editorconfig`에 사유와 함께만 둔다. **구조·경계 규칙은 포맷터가 아니라 테스트로 강제**한다 *(계획)*
+  예외는 `.editorconfig`에 사유와 함께만 둔다.
+- 구조·경계: **Konsist `ArchitectureSpec`** — 레이어 규칙을 문장이 아니라 테스트로 강제한다
+  (JDBC는 어댑터에만 · domain은 프레임워크 무의존 · Kafka produce는 수집 경로에만 ·
+  Testcontainers 스펙은 Integration 태그 필수). Python은 ruff **TID251**로 임포트 경계를 잡는다
 
 ### 메시징 (비동기 수집)
 - **Apache Kafka (KRaft 모드, ZooKeeper 없음)** — docker-compose 단일 브로커로 시작
