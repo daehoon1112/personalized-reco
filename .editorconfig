@@ -10,6 +10,15 @@ indent_style = space
 [*.{kt,kts}]
 indent_size = 4
 
+# ktlint 예외는 여기에만 두고 반드시 사유를 남긴다(규칙을 몰래 끄지 않기 위해).
+#
+# 이 저장소는 생성자 파라미터 뒤에 의미 있는 꼬리 주석을 열 맞춰 단다
+# (예: Event.position 의 "impression/click만, 1-base", ImpressionLabel 의 point-in-time 스냅샷 표시).
+# 두 규칙은 그 정렬 공백을 단일 공백으로 강제해 주석 블록을 흐트러뜨리므로 끈다 —
+# 정렬을 포기하기로 하면 이 두 줄을 지우고 `./gradlew ktlintFormat` 한 번이면 된다.
+ktlint_standard_no-multi-spaces = disabled
+ktlint_standard_parameter-list-spacing = disabled
+
 [*.{py,toml}]
 indent_size = 4
 

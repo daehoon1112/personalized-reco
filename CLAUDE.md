@@ -133,8 +133,10 @@ data                # 로컬 산출물 (gitignore)
 
 ## 코딩 컨벤션
 
-- **Kotlin**: Spring Boot 관용(생성자 주입, `@RestController`, DTO 분리).
-  (ktlint + detekt는 **계획** — 아직 Gradle에 미도입이라 강제되지 않는다.)
+- **Kotlin**: ktlint 통과(`make lint`, `gradle build`에 포함 · 자동 수정 `make format`).
+  Spring Boot 관용(생성자 주입, `@RestController`, DTO 분리).
+  ktlint 예외는 `.editorconfig`에 **사유와 함께만** 둔다 — 규칙을 조용히 끄지 않는다.
+  포맷은 ktlint가 보고, 레이어·경계 규칙은 문서가 아니라 **테스트로 강제**한다(구조 검증, 계획).
   널 안전성·`data class` 활용. 패키지 `me.imweb.reco.*`(또는 합의된 루트).
 - **Python**: ruff(lint+format) + mypy(타입) 통과. `uv`로 의존성 관리, 함수/모듈 단위 타입 힌트.
 - **Proto**: `buf lint` 통과. 필드 번호는 절대 재사용 금지(하위호환). 변경은 add-only 우선.

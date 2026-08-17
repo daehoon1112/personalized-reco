@@ -12,8 +12,10 @@ import org.springframework.web.bind.annotation.RestController
  */
 @RestController
 class ExampleRecommendationController {
-
-    data class RecommendedItem(val itemId: String, val score: Double)
+    data class RecommendedItem(
+        val itemId: String,
+        val score: Double,
+    )
 
     data class RecommendationsResponse(
         val userId: String,
@@ -28,10 +30,11 @@ class ExampleRecommendationController {
         RecommendationsResponse(
             userId = userId,
             strategy = "popularity-fallback (example)",
-            items = listOf(
-                RecommendedItem("item-1", 0.92),
-                RecommendedItem("item-2", 0.81),
-                RecommendedItem("item-3", 0.77),
-            ),
+            items =
+                listOf(
+                    RecommendedItem("item-1", 0.92),
+                    RecommendedItem("item-2", 0.81),
+                    RecommendedItem("item-3", 0.77),
+                ),
         )
 }

@@ -28,7 +28,6 @@ import java.util.Properties
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @AutoConfigureTestRestTemplate // Boot 4: RANDOM_PORT만으로는 TestRestTemplate 빈이 안 뜬다
 class EventIngestE2ETest : StringSpec() {
-
     // Kotest 6는 생성자 주입에 프로젝트 레벨 확장 등록이 필요 → 필드 주입으로 대체.
     @Autowired
     private lateinit var restTemplate: TestRestTemplate
@@ -37,9 +36,10 @@ class EventIngestE2ETest : StringSpec() {
         extensions(SpringExtension())
 
         "POST /events 는 Kafka events 토픽으로 produce 된다" {
-            val body = listOf(
-                mapOf("eventType" to "impression", "userId" to "u1", "itemId" to "i1"),
-            )
+            val body =
+                listOf(
+                    mapOf("eventType" to "impression", "userId" to "u1", "itemId" to "i1"),
+                )
 
             val response = restTemplate.postForEntity("/events", body, Map::class.java)
             response.statusCode shouldBe HttpStatus.ACCEPTED
@@ -49,13 +49,14 @@ class EventIngestE2ETest : StringSpec() {
     }
 
     private fun consumeOneValue(topic: String): String? {
-        val props = Properties().apply {
-            put("bootstrap.servers", kafka.bootstrapServers)
-            put("group.id", "e2e-verify")
-            put("auto.offset.reset", "earliest")
-            put("key.deserializer", StringDeserializer::class.java.name)
-            put("value.deserializer", StringDeserializer::class.java.name)
-        }
+        val props =
+            Properties().apply {
+                put("bootstrap.servers", kafka.bootstrapServers)
+                put("group.id", "e2e-verify")
+                put("auto.offset.reset", "earliest")
+                put("key.deserializer", StringDeserializer::class.java.name)
+                put("value.deserializer", StringDeserializer::class.java.name)
+            }
         KafkaConsumer<String, String>(props).use { consumer ->
             consumer.subscribe(listOf(topic))
             val deadline = System.currentTimeMillis() + 10_000

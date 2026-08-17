@@ -33,12 +33,13 @@ data class ImpressionLabel(
 ) {
     /** 최대 행동 라벨: 0=none, 1=click, 2=cart, 3=purchase. */
     val label: Int
-        get() = when {
-            isPurchase -> LABEL_PURCHASE
-            isCart -> LABEL_CART
-            isClick -> LABEL_CLICK
-            else -> LABEL_NONE
-        }
+        get() =
+            when {
+                isPurchase -> LABEL_PURCHASE
+                isCart -> LABEL_CART
+                isClick -> LABEL_CLICK
+                else -> LABEL_NONE
+            }
 
     init {
         // purchase는 귀속 anchor(click 또는 cart) 없이 존재할 수 없다 — attribution v1 규칙 그대로.

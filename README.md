@@ -195,7 +195,8 @@ sequenceDiagram
 - **Spring Boot 4.x** — Spring WebMVC, JDBC, **Spring for Apache Kafka**, spring-boot-docker-compose(로컬 개발)
 - 빌드: **Gradle (Kotlin DSL)** + Wrapper
 - DB 마이그레이션: **Flyway** (DB 스키마 소유자 = JVM 측, Spring Boot가 기동 시 적용 · `make migrate`로 단독 실행)
-- 린트/포맷: **ktlint** + **detekt** *(계획 — 아직 Gradle에 미도입)*
+- 린트/포맷: **ktlint** (Gradle 플러그인, `make lint` · `gradle build`에 포함 / 자동 수정은 `make format`).
+  예외는 `.editorconfig`에 사유와 함께만 둔다. **구조·경계 규칙은 포맷터가 아니라 테스트로 강제**한다 *(계획)*
 
 ### 메시징 (비동기 수집)
 - **Apache Kafka (KRaft 모드, ZooKeeper 없음)** — docker-compose 단일 브로커로 시작
