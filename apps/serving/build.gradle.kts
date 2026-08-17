@@ -69,7 +69,10 @@ tasks.named<Test>("test") {
 tasks.register<Test>("integrationTest") {
     description = "Testcontainers 통합/E2E 테스트 (Docker 필요)"
     group = "verification"
-    testClassesDirs = sourceSets.test.get().output.classesDirs
+    testClassesDirs =
+        sourceSets.test
+            .get()
+            .output.classesDirs
     classpath = sourceSets.test.get().runtimeClasspath
     systemProperty("kotest.tags", "Integration")
     shouldRunAfter("test")

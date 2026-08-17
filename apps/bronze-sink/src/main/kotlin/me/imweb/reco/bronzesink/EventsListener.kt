@@ -23,15 +23,16 @@ class EventsListener(
 
     @KafkaListener(topics = ["\${app.kafka.events-topic}"])
     fun onMessage(raw: String) {
-        val event = try {
-            objectMapper.readValue(raw, Event::class.java)
-        } catch (e: JacksonException) {
-            log.warn("skip bad message: {}", e.message)
-            return
-        } catch (e: IllegalArgumentException) {
-            log.warn("skip bad message: {}", e.message)
-            return
-        }
+        val event =
+            try {
+                objectMapper.readValue(raw, Event::class.java)
+            } catch (e: JacksonException) {
+                log.warn("skip bad message: {}", e.message)
+                return
+            } catch (e: IllegalArgumentException) {
+                log.warn("skip bad message: {}", e.message)
+                return
+            }
         val inserted = writer.insert(event, raw)
         if (!inserted) log.debug("duplicate event skipped: {}", event.eventId)
     }

@@ -11,8 +11,9 @@ import org.springframework.web.bind.annotation.RestController
  * 추천이 아니라 마스터 데이터 조회다(추천은 /api/recommendations, #8).
  */
 @RestController
-class CatalogController(private val reader: CatalogReader) {
-
+class CatalogController(
+    private val reader: CatalogReader,
+) {
     data class ItemResponse(
         val itemId: String,
         val name: String?,
@@ -22,12 +23,18 @@ class CatalogController(private val reader: CatalogReader) {
         val currency: String,
     )
 
-    data class ItemsResponse(val items: List<ItemResponse>)
+    data class ItemsResponse(
+        val items: List<ItemResponse>,
+    )
 
-    data class UsersResponse(val userIds: List<String>)
+    data class UsersResponse(
+        val userIds: List<String>,
+    )
 
     @GetMapping("/api/items")
-    fun items(@RequestParam(defaultValue = "60") limit: Int): ItemsResponse =
+    fun items(
+        @RequestParam(defaultValue = "60") limit: Int,
+    ): ItemsResponse =
         ItemsResponse(
             reader.listSellableItems(limit.coerceIn(1, MAX_LIMIT)).map {
                 ItemResponse(
@@ -42,8 +49,9 @@ class CatalogController(private val reader: CatalogReader) {
         )
 
     @GetMapping("/api/users")
-    fun users(@RequestParam(defaultValue = "24") limit: Int): UsersResponse =
-        UsersResponse(reader.listUserIds(limit.coerceIn(1, MAX_LIMIT)))
+    fun users(
+        @RequestParam(defaultValue = "24") limit: Int,
+    ): UsersResponse = UsersResponse(reader.listUserIds(limit.coerceIn(1, MAX_LIMIT)))
 
     companion object {
         private const val MAX_LIMIT = 300

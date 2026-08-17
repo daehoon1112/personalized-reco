@@ -51,8 +51,14 @@ ui: ## 데모 스토어프론트 dev 서버 (:5173 → :8080 프록시, 백엔�
 	cd apps/web && npm install --silent && npm run dev
 
 .PHONY: lint
-lint: ## 린트 (ruff)
+lint: ## 린트 (Kotlin=ktlint · Python=ruff). ktlintCheck는 gradle build에도 물려 있다
+	$(GRADLE) ktlintCheck
 	$(UV) run ruff check .
+
+.PHONY: format
+format: ## 포맷 자동 수정 (ktlintFormat + ruff format)
+	$(GRADLE) ktlintFormat
+	$(UV) run ruff format .
 
 COMPOSE := docker compose -f infra/docker-compose.yml
 
