@@ -41,7 +41,7 @@
   운영(소규모 초기 단순화). 로컬은 **Docker Compose**(Postgres + Kafka). Redis는 추후.
 - **이벤트 스키마 단일 소스**: **Protobuf + buf** → Kotlin·Python 코드젠 (payload는 proto-over-JSON).
 - **구조**: 폴리글랏 모노레포 — Gradle(Kotlin) + uv(Python), 루트 **Makefile**로 통합 태스크.
-- **CI**: GitHub Actions (gradle build/test · uv sync/test · buf lint).
+- **CI**: GitHub Actions (gradle build/test · uv sync/test · buf lint) — **계획(#12)**, 워크플로 미작성.
 
 ## 모노레포 구조
 
@@ -74,8 +74,9 @@ data                # 로컬 산출물 (gitignore)
 원천 이벤트(atomic) ≠ 학습 예제(labeled). **전부 Postgres** 안에서 레이어로 가공해 모델에 먹인다.
 
 - **Bronze** `events_raw`: 받은 그대로의 불변 이벤트(append-only).
-- **Silver** `labeled_impressions`: 세션화·중복제거 + impression↔결과(click/purchase) 조인 라벨링.
-- **Gold**: 모델별 학습 입력 — `item_popularity`(인기순), `user_item_interactions`(CF용 암묵 피드백).
+- **Silver** `impression_label`: impression↔결과(click/cart/purchase) 조인 라벨링.
+  세션화·중복제거는 **미구현(계획)** — 현재는 `(session_id, request_id, item_id)` 귀속만 한다.
+- **Gold**: 모델별 학습 입력 — `item_popularity`(인기순), `user_item_interaction`(CF용 암묵 피드백).
 
 모델 단계별 입력 구조:
 - 인기순(MVP): `(item_id, window, click_cnt, purchase_cnt, score)` 집계.
@@ -132,7 +133,8 @@ data                # 로컬 산출물 (gitignore)
 
 ## 코딩 컨벤션
 
-- **Kotlin**: ktlint + detekt 통과. Spring Boot 관용(생성자 주입, `@RestController`, DTO 분리).
+- **Kotlin**: Spring Boot 관용(생성자 주입, `@RestController`, DTO 분리).
+  (ktlint + detekt는 **계획** — 아직 Gradle에 미도입이라 강제되지 않는다.)
   널 안전성·`data class` 활용. 패키지 `me.imweb.reco.*`(또는 합의된 루트).
 - **Python**: ruff(lint+format) + mypy(타입) 통과. `uv`로 의존성 관리, 함수/모듈 단위 타입 힌트.
 - **Proto**: `buf lint` 통과. 필드 번호는 절대 재사용 금지(하위호환). 변경은 add-only 우선.
