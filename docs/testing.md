@@ -93,6 +93,23 @@ pytest -m integration      # Testcontainers 통합만 (Docker 필요)
 
 ---
 
+## 구조 테스트 (ArchitectureSpec · Konsist)
+
+레이어·경계 규칙은 문서에 적어두면 시간이 지나 코드와 갈라진다. 구문으로 판정 가능한 것은
+**테스트로 내린다** — `apps/serving`·`apps/bronze-sink`의 `ArchitectureSpec`(Kotest + Konsist).
+
+- JDBC 접근은 어댑터(`catalog/`·`*Writer`)에서만 — 컨트롤러·도메인은 DB를 모른다
+- `domain/`은 Spring·JPA·Jackson을 import하지 않는다 (매핑은 어댑터의 몫)
+- Kafka produce는 수집 경로(`event/`)에서만, 소비 진입점(`@KafkaListener`)은 리스너 한 곳만
+- **Testcontainers를 쓰는 스펙은 `@Tags("Integration")` 필수** — 빠뜨리면 Docker 없는 환경에서
+  기본 `gradle test`가 깨진다(이 문서의 태그 분리 약속을 테스트가 지킨다)
+
+Python 쪽 경계는 ruff `TID251`(banned-api)로 잡는다 — 순수 로직은 `psycopg`를 모르고,
+`py_common`은 `pipelines`를 import하지 않는다. 규칙을 완화해야 하면 문서가 아니라
+`ArchitectureSpec`/`pyproject.toml`을 고치고, 예외에는 사유를 남긴다.
+
+---
+
 ## 공통 규칙
 
 - **결정성**: 단위 계층은 고정 시드·고정 픽스처. 벽시계 시간·네트워크 금지.

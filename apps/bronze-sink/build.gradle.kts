@@ -31,6 +31,9 @@ dependencies {
     testImplementation("io.kotest:kotest-runner-junit5:6.2.1")
     testImplementation("io.kotest:kotest-assertions-core:6.2.1")
     testImplementation("io.kotest:kotest-extensions-spring:6.2.1")
+    // AGENTS 규칙 중 구조로 판정 가능한 것(레이어·경계)을 문장이 아니라 테스트로 강제한다(ArchitectureSpec).
+    // ktlint 는 포맷만 본다.
+    testImplementation("com.lemonappdev:konsist:0.17.3")
     testImplementation("io.mockk:mockk:1.14.11")
     testImplementation("org.testcontainers:testcontainers-kafka")
     testImplementation("org.testcontainers:testcontainers-postgresql")

@@ -136,9 +136,14 @@ data                # 로컬 산출물 (gitignore)
 - **Kotlin**: ktlint 통과(`make lint`, `gradle build`에 포함 · 자동 수정 `make format`).
   Spring Boot 관용(생성자 주입, `@RestController`, DTO 분리).
   ktlint 예외는 `.editorconfig`에 **사유와 함께만** 둔다 — 규칙을 조용히 끄지 않는다.
-  포맷은 ktlint가 보고, 레이어·경계 규칙은 문서가 아니라 **테스트로 강제**한다(구조 검증, 계획).
+  포맷은 ktlint가 보고, **레이어·경계 규칙은 문서가 아니라 테스트가 지킨다** —
+  `ArchitectureSpec`(Konsist): JDBC는 어댑터에만 · domain은 프레임워크 무의존 ·
+  Kafka produce는 수집 경로에만 · Testcontainers 스펙은 Integration 태그 필수.
+  규칙을 완화해야 하면 문서가 아니라 그 스펙을 고친다.
   널 안전성·`data class` 활용. 패키지 `me.imweb.reco.*`(또는 합의된 루트).
 - **Python**: ruff(lint+format) + mypy(타입) 통과. `uv`로 의존성 관리, 함수/모듈 단위 타입 힌트.
+  임포트 경계도 ruff(TID251)로 강제한다 — 순수 로직은 `psycopg`를 모르고(DB 경계 파일만 예외),
+  `py_common`은 `pipelines`를 import하지 않는다(의존 방향 한 방향).
 - **Proto**: `buf lint` 통과. 필드 번호는 절대 재사용 금지(하위호환). 변경은 add-only 우선.
 - **공통**: Conventional Commits(`feat:`, `fix:`, `chore:` …), 짧은 feature 브랜치 → PR.
   통합 명령은 루트 **Makefile** 사용.
