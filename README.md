@@ -195,7 +195,7 @@ sequenceDiagram
 - **Spring Boot 4.x** — Spring WebMVC, JDBC, **Spring for Apache Kafka**, spring-boot-docker-compose(로컬 개발)
 - 빌드: **Gradle (Kotlin DSL)** + Wrapper
 - DB 마이그레이션: **Flyway** (DB 스키마 소유자 = JVM 측, Spring Boot가 기동 시 적용 · `make migrate`로 단독 실행)
-- 린트/포맷: **ktlint** + **detekt**
+- 린트/포맷: **ktlint** + **detekt** *(계획 — 아직 Gradle에 미도입)*
 
 ### 메시징 (비동기 수집)
 - **Apache Kafka (KRaft 모드, ZooKeeper 없음)** — docker-compose 단일 브로커로 시작
@@ -203,7 +203,9 @@ sequenceDiagram
 
 ### ML · 데이터 파이프라인 (Python)
 - **Python 3.12**, 패키지·워크스페이스 관리 **uv**
-- 핵심 라이브러리: **pandas · numpy · scikit-learn**(평가 지표), **psycopg**(Postgres)
+- 현재 의존성: **psycopg**(Postgres) · **httpx**(수집 API 전송).
+  평가 지표는 표준 라이브러리로 직접 구현(`py_common.metrics`) — **pandas · numpy · scikit-learn**은
+  모델 학습 단계(#10~#11)에서 도입 예정 *(계획)*
 - 모델: MVP=**인기순 베이스라인** → 이후 **implicit / LightFM**(협업 필터링) → 하이브리드 → 딥러닝
 - 린트/타입: **ruff** + **mypy**
 - 오케스트레이션: MVP는 CLI/Makefile, 추후 Prefect/Dagster 검토 *(현재 범위 외)*
@@ -216,7 +218,7 @@ sequenceDiagram
 
 ### 저장소 · 공통
 - 구조: **폴리글랏 모노레포** — Gradle(Kotlin) + uv(Python), 루트 **Makefile**로 통합 태스크
-- CI: **GitHub Actions** (gradle build/test · uv sync/test · buf lint)
+- CI: **GitHub Actions** (gradle build/test · uv sync/test · buf lint) *(계획 — #12, 워크플로 미작성)*
 - 컨벤션: Conventional Commits · 짧은 feature 브랜치(trunk-based)
 
 ## 모노레포 구조 (계획)
@@ -305,7 +307,7 @@ make test-integration  # E2E · 통합 (Testcontainers, Docker 필요)
 | 레이어 | 내용 | 테이블 |
 |---|---|---|
 | **Bronze** | 받은 그대로의 불변 이벤트 (append-only) | `events_raw` |
-| **Silver** | 세션화·중복제거 + impression↔결과 조인 **라벨링** | `impression_label` |
+| **Silver** | impression↔결과 조인 **라벨링** (세션화·중복제거는 계획) | `impression_label` |
 | **Gold** | 모델별 학습 입력 + 서빙 결과 | `item_popularity`, `user_item_interaction`, `recommendation` |
 
 테이블 정의·컨벤션·attribution 규칙은 [docs/data-model.md](./docs/data-model.md) 참조.

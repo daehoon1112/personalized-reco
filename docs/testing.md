@@ -6,7 +6,9 @@
 | 모듈 | 스택 | 종류 |
 |---|---|---|
 | `apps/serving` (Kotlin) | **Kotest** + **MockK** + **Testcontainers** | 단위 / E2E |
-| `apps/pipelines`·`packages/*` (Python) | **pytest** (+ Testcontainers) | ①결정적 단위 ②계약 ③메트릭 ④행동·회귀 / 컨슈머 통합 |
+| `apps/bronze-sink` (Kotlin) | **Kotest** + **Testcontainers** | 단위(계약 위반 스킵) / E2E(적재·멱등) |
+| `apps/pipelines`·`packages/*` (Python) | **pytest** (+ Testcontainers) | ①결정적 단위 ②계약 ③메트릭 ④행동·회귀 / 통합 |
+| `apps/web` (TypeScript) | **vitest** | 트래커 이벤트 계약 |
 
 빠른 테스트는 기본 실행에 포함, Docker가 필요한 테스트는 **태그/마커로 분리**해 따로 돌린다.
 
@@ -56,8 +58,11 @@
 - **콜드 스타트**: 신규 유저가 터지지 않고 **인기순 폴백**을 반환.
 - **회귀 가드**: 고정 시드 검증셋에서 **NDCG ≥ 기준선**(baseline). 떨어지면 회귀 의심 → 실패.
 
-### 컨슈머 통합 (Testcontainers, Docker 필요)
-- `testcontainers`로 **Kafka+Postgres** 기동 → 이벤트 produce → `run_consumer()` → **Bronze 행 적재 + 멱등성**(중복 메시지가 한 행) 확인.
+### 통합 (Testcontainers, Docker 필요)
+- `testcontainers`로 **Kafka+Postgres** 기동 → 합성 이벤트 `POST /events` → bronze 적재까지
+  한 바퀴 확인(`tests/integration/test_seed_e2e.py`).
+- Kafka 컨슈머 자체의 적재·멱등성 검증은 **Python이 아니라 `apps/bronze-sink`(Kotlin)** 에 있다
+  (#13에서 컨슈머가 Kotlin으로 이동) — 아래 "컨슈머 (apps/bronze-sink)" 절 참조.
 
 ### 마커 분리
 ```
@@ -65,6 +70,17 @@ pytest                     # 기본: 빠른 테스트만 (integration 제외)
 pytest -m integration      # Testcontainers 통합만 (Docker 필요)
 ```
 `pyproject.toml`의 `[tool.pytest.ini_options]`에 `addopts = "-m 'not integration'"`, 마커 `integration` 등록.
+
+---
+
+## 컨슈머 (apps/bronze-sink) — Kotlin
+
+`apps/serving`과 같은 규칙(Kotest + 태그 분리)을 쓴다.
+
+- 단위(`EventsListenerTest`): 계약 위반 메시지(깨진 JSON·모르는 eventType)를 **스킵**하고
+  정상 리턴하는지 — 오프셋이 커밋돼 불량 메시지가 무한 재소비되지 않아야 한다.
+- E2E(`BronzeSinkE2ETest`, `@Tags("Integration")`): 실제 Kafka+Postgres에 produce →
+  리스너 → `events_raw` 적재 + **멱등성**(같은 `event_id` 재전송이 한 행) 확인.
 
 ---
 
