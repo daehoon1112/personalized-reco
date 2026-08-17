@@ -41,9 +41,11 @@ data class ImpressionLabel(
         }
 
     init {
-        // 퍼널 정합성: 상위 행동은 하위 행동을 전제한다 (라벨링 배치 버그 조기 검출)
+        // purchase는 귀속 anchor(click 또는 cart) 없이 존재할 수 없다 — attribution v1 규칙 그대로.
         require(!isPurchase || isCart || isClick) { "purchase는 click/cart 없이 존재할 수 없음: $impressionId" }
-        require(!isCart || isClick) { "cart는 click 없이 존재할 수 없음: $impressionId" }
+        // cart는 click을 전제하지 않는다. 수집은 fire-and-forget(유실 허용)이라 click만 유실되고
+        // cart/purchase가 도착하는 조합이 실제로 관측된다 — 관측된 신호를 버리지 않고 그대로 싣는다.
+        // (attribution v1: cart도 impression 기준으로 독립 귀속 — docs/data-model.md)
     }
 
     companion object {

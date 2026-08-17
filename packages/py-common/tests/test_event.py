@@ -120,8 +120,18 @@ def test_snake_case_keys_are_accepted() -> None:
         {"eventId": "e-3", "eventType": "wishlist", "ts": "2026-06-27T03:00:00Z"},  # 모르는 타입
         {"eventType": "click", "ts": "2026-06-27T03:00:00Z"},  # eventId 누락
         {"eventId": "e-5", "eventType": "click"},  # ts 누락
+        # 타임존 없는 ts — 파싱 자체는 되지만 tz-aware와 비교 불가(TypeError)라
+        # 라벨링 배치 전체를 죽인다. 계약 위반으로 막아 해당 행만 스킵되게 한다.
+        {"eventId": "e-6", "eventType": "click", "ts": "2026-06-27T03:00:00"},
     ],
 )
 def test_contract_violations_fail_loudly(bad: dict) -> None:
     with pytest.raises(ValueError):
         parse_event(bad)
+
+
+def test_parsed_ts_is_always_tz_aware() -> None:
+    """비교 가능성(=배치 안전성)을 파싱 계약으로 보장한다."""
+    for ts_raw in ("2026-06-27T03:00:00Z", "2026-06-27T12:00:00+09:00"):
+        event = parse_event({"eventId": "e", "eventType": "click", "ts": ts_raw})
+        assert event.ts.tzinfo is not None

@@ -76,6 +76,24 @@ def _run_seed(args: argparse.Namespace) -> None:
     print(f"타입 분포: {dict(counts)}", file=sys.stderr)
 
 
+def _run_label(_: argparse.Namespace) -> None:
+    """silver 라벨링 (#14) — bronze 전량을 읽어 impression_label에 upsert."""
+    import psycopg  # 무거운 import는 서브커맨드 안으로
+
+    from pipelines.label import run_label
+
+    with psycopg.connect(load_settings().database_url) as conn:
+        report = run_label(conn)
+    print(f"labeled: {report.labeled} rows")
+    if report.has_losses:
+        # 라벨 수가 조용히 줄어드는 것을 막는다 — 손실은 항상 눈에 보이게.
+        print(
+            f"손실: bronze 스킵 {report.skipped_bronze}건 · 조인키 누락 {report.skipped_impression}건"
+            f" · 적재 실패 {report.failed}건",
+            file=sys.stderr,
+        )
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="reco-pipelines",
@@ -87,6 +105,7 @@ def build_parser() -> argparse.ArgumentParser:
     sub.add_parser("example-popularity", help="예시 인기순 추천 출력").set_defaults(
         handler=_run_example_popularity
     )
+    sub.add_parser("label", help="silver 세션화/라벨링 (#14)").set_defaults(handler=_run_label)
 
     seed = sub.add_parser("seed", help="합성 트래픽 생성 → POST /events 전송 (#9)")
     seed.add_argument("--events", type=int, default=1000, help="생성할 이벤트 수")

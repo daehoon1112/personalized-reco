@@ -74,12 +74,14 @@ migrate: ## (#5) Flyway 마이그레이션 (Postgres 필요: make up 먼저)
 seed: ## (#9) 합성 트래픽 시뮬레이터 → POST /events (스택 필요: make dev 먼저)
 	$(UV) run reco-pipelines seed
 
+.PHONY: label
+label:   ## (#14) silver 세션화/라벨링 (Postgres 필요: make up 먼저)
+	$(UV) run reco-pipelines label
+
 # --- 아래는 후속 이슈에서 채워질 자리표시자 ---
-.PHONY: codegen label batch eval
+.PHONY: codegen batch eval
 codegen: ## (#4) protobuf 코드젠 (buf)
 	@echo "TODO(#4): buf generate"
-label:   ## (#14) silver 세션화/라벨링
-	@echo "TODO(#14): build silver labels"
 batch:   ## (#10) gold 인기순 배치
 	@echo "TODO(#10): popularity batch"
 eval:    ## (#11) 오프라인 평가

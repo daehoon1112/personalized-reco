@@ -69,7 +69,14 @@ proto+buf 코드젠(#4)이 완성되면 이 수동 정의들이 생성 타입으
 ## Attribution v1 (확정)
 
 - **click**: 같은 `session_id` + 같은 `request_id` + 같은 `item_id`의 후행 클릭을 해당 impression에 귀속
-- **purchase(cart 포함)**: 해당 아이템 `click_date`(없으면 `cart_date`)로부터 **24h** 이내 귀속
+  (impression과 같은 시각은 후행으로 보지 않음 — 엄격히 이후)
+- **cart**: click과 **같은 규칙으로 독립 귀속**한다(click을 전제하지 않는다).
+  수집이 fire-and-forget이라 click만 유실되고 cart가 도착하는 조합이 실제로 관측되며,
+  그때 관측된 신호를 버리면 학습 데이터에서 전환 positive가 사라진다.
+  → `is_cart=true, is_click=false`는 **정상 행**이다(퍼널 위반이 아니라 유실의 흔적).
+- **purchase**: anchor(`click_date`, 없으면 `cart_date`)로부터 **24h** 이내 귀속.
+  anchor가 없으면(click·cart 둘 다 없음) 귀속하지 않는다.
+- `label`은 퍼널 단계가 아니라 **관측된 최대 신호**(0=none/1=click/2=cart/3=purchase)다.
 - 규칙은 `impression_label.label_version`에 기록(예: `v1:click=session+request,purchase=24h`) →
   윈도 변경 시 버전을 올리고 재라벨링, 서로 다른 버전 혼합 학습 금지
 
